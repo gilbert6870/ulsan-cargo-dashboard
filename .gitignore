@@ -1,0 +1,23 @@
+# 프리즘 로그인 정보 (절대 Git에 올리지 말 것!)
+.env
+
+# 실제 수집 데이터 (개인정보 포함 가능)
+data/prism_data.csv
+data/error_screenshot.png
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
