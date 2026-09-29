@@ -2,7 +2,6 @@
 .env
 
 # 실제 수집 데이터 (개인정보 포함 가능)
-data/prism_data.csv
 data/error_screenshot.png
 
 # Python
