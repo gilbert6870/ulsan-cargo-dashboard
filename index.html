@@ -37,7 +37,7 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .kpi-val{font-size:20px;font-weight:700;line-height:1.1;margin:2px 0}
 .kpi-sub{font-size:10px;color:var(--muted)}
-#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr 220px;grid-template-columns:2fr 1fr 1fr 1fr}
+#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr;grid-template-columns:2fr 1fr 1fr 1fr}
 .card{background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px}
 .card-title{font-size:11px;font-weight:600;flex:1}
@@ -78,7 +78,8 @@ tr:hover td{background:var(--card2)}
 /* Size bars */
 .sz-body{display:flex;flex-direction:column;justify-content:space-evenly;padding:6px 8px;gap:0}
 .sz-row{display:flex;align-items:center;gap:5px}
-.sz-lbl{color:var(--text);font-weight:700;width:22px;flex-shrink:0;font-size:11px}
+.sz-lbl{color:var(--text);font-weight:700;width:36px;flex-shrink:0;font-size:11px}
+.sz-sec{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:1px;margin-top:2px}.sz-sec span:first-child{color:var(--text);font-weight:700}
 .sz-track{flex:1;height:14px;background:var(--border);border-radius:3px;overflow:hidden;cursor:pointer}
 .sz-fill{height:100%;border-radius:3px;transition:width .4s;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
 .sz-fill span{font-size:9px;color:#fff;font-weight:700;text-shadow:0 0 4px rgba(0,0,0,.5)}
@@ -192,7 +193,7 @@ tr:hover td{background:var(--card2)}
   </div>
   <!-- 사이즈 별도 표시 -->
   <div class="card card-size">
-    <div class="card-hdr"><span class="card-title">&#x1F4D0; &#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;</span><button class="expand-btn" onclick="openModal('size','&#xADDC;&#xACA9;&#xBCC4; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-hdr"><span class="card-title">&#x1F4D0; 컨테이너 규격 (전체 / EMPTY)</span><button class="expand-btn" onclick="openModal('size','&#xADDC;&#xACA9;&#xBCC4; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
     <div class="sz-body card-body" style="padding:6px 8px" id="sizeBars"></div>
   </div>
   <!-- 화주별 -->
@@ -200,11 +201,6 @@ tr:hover td{background:var(--card2)}
     <div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
     <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('수출',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('수입',this)">&#xC218;&#xC785;</button></div>
     <div class="tbl-wrap"><table><thead><tr><th>&#xD654;&#xC8FC;&#xBA85;</th><th>TEU</th><th style="color:var(--exp)">&#xC218;&#xCD9C;</th><th style="color:var(--imp)">&#xC218;&#xC785;</th><th style="color:var(--green)">FULL</th><th>&#xC810;&#xC720;&#xC728;</th></tr></thead><tbody id="shipperTableBody"></tbody></table></div>
-  </div>
-  <!-- 선사별 -->
-  <div class="card card-carrier">
-    <div class="card-hdr"><span class="card-title">&#x1F6F3; &#xC120;&#xC0AC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9; (&#xC6B8;&#xC0B0;&#xD56D; &#xC804;&#xCCB4;)</span><button class="expand-btn" onclick="openModal('carrier','&#xC120;&#xC0AC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
-    <div class="card-body"><canvas id="chartCarrier"></canvas></div>
   </div>
 </div>
 <div id="modal" onclick="if(event.target===this)closeModal()">
@@ -485,10 +481,21 @@ function updateKPIs(){
   document.getElementById("kpiFullSub").textContent="EMPTY: "+(100-fRate).toFixed(1)+"%";
 }
 
+// 막대 위 숫자 표시: 구간값(충분히 클 때) + 누적 합계
+var barValuePlugin={id:"barValues",afterDatasetsDraw:function(chart){
+  var ctx=chart.ctx,metas=chart.data.datasets.map(function(d,i){return chart.getDatasetMeta(i);}).filter(function(m){return !m.hidden;});
+  if(!metas.length)return;var big=chart.canvas.height>500;
+  ctx.save();ctx.textAlign="center";
+  metas.forEach(function(m){m.data.forEach(function(bar,i){var v=chart.data.datasets[m.index].data[i];if(!v)return;var hgt=Math.abs(bar.base-bar.y);
+    if(hgt<(big?16:12))return;ctx.font=(big?"12px":"9px")+" sans-serif";ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(Math.round(v).toLocaleString(),bar.x,(bar.y+bar.base)/2);});});
+  var n=chart.data.labels.length;for(var i=0;i<n;i++){var tot=0,top=null,x=null;
+    metas.forEach(function(m){var v=chart.data.datasets[m.index].data[i]||0;tot+=v;var b=m.data[i];if(b&&(top===null||b.y<top)){top=b.y;x=b.x;}});
+    if(tot>0&&top!==null){ctx.font="bold "+(big?"13px":"10px")+" sans-serif";ctx.fillStyle="#e2e8f0";ctx.textBaseline="bottom";ctx.fillText(Math.round(tot).toLocaleString(),x,top-2);}}
+  ctx.restore();}};
 var baseOpts={responsive:true,maintainAspectRatio:false,animation:{duration:150},plugins:{legend:{labels:{font:{size:10},color:"#94a3b8"}}}};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function updateCharts(){updateMonthlyTrendChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();updateCarrierChart();}
+function updateCharts(){updateMonthlyTrendChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();}
 
 function getChartMonths(){
   var months=[],now=new Date(),curYM=now.getFullYear()*100+(now.getMonth()+1);
@@ -507,14 +514,14 @@ function updateMonthlyTrendChart(){
     {label:"EMPTY",data:cms.map(function(ym){return trendVal(ym,"fe","E");}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
   ];
   charts["daily"]=new Chart(document.getElementById("chartDaily"),{
-    type:"bar",data:{labels:labels,datasets:datasets},
+    type:"bar",data:{labels:labels,datasets:datasets},plugins:[barValuePlugin],
     options:Object.assign({},baseOpts,{interaction:{mode:"index"},onClick:function(evt,els){
       if(els&&els.length){var idx=els[0].index;var ym=cms[idx];
       var mb=document.querySelector('#monthBtns .btn[data-ym="'+ym+'"]');
       if(mb){mb.click();}}
     },scales:{
       x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"rgba(51,65,85,.3)"}},
-      y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",font:{size:9},color:"#94a3b8"}}
+      y:{stacked:true,grace:"10%",ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",font:{size:9},color:"#94a3b8"}}
     }})
   });
 }
@@ -679,24 +686,28 @@ function updateVesselChart(){
   });
 }
 
+function sizeCat(r){
+  var c=String(r["컨테이너코드"]||"").toUpperCase();
+  if(c[0]==="2")return"20'";
+  if(c[0]==="4"||c[0]==="L")return c[1]==="5"?"40'HC":"40'";
+  var g=String(r["컨테이너규격"]||"");return g.indexOf("20")>=0?"20'":(g.indexOf("40")>=0?"40'":"기타");
+}
+function sizeRowsHtml(d,title,color){
+  var cats=["20'","40'","40'HC","기타"],m={};cats.forEach(function(k){m[k]={van:0,teu:0};});
+  d.forEach(function(r){var k=sizeCat(r);m[k].van++;m[k].teu+=teu(r);});
+  var totT=cats.reduce(function(s,k){return s+m[k].teu;},0),totV=cats.reduce(function(s,k){return s+m[k].van;},0);
+  var maxT=Math.max.apply(null,cats.map(function(k){return m[k].teu;}));
+  var html='<div class="sz-sec"><span>'+title+'</span><span>'+totV.toLocaleString()+' VAN · '+totT.toLocaleString()+' TEU</span></div>';
+  cats.forEach(function(k){if(!m[k].van)return;
+    var pct=totT>0?(m[k].teu/totT*100).toFixed(1):0,w=maxT>0?(m[k].teu/maxT*100).toFixed(1):0;
+    html+='<div class="sz-row"><span class="sz-lbl">'+k+'</span><div class="sz-track"><div class="sz-fill" style="width:'+w+'%;background:'+color[k]+'"><span>'+(w>30?pct+"%":"")+'</span></div></div>'
+      +'<div class="sz-vals"><span class="sz-teu">'+m[k].van.toLocaleString()+'V · '+m[k].teu.toLocaleString()+'T</span></div></div>';});
+  return html;
+}
 function updateSizeChart(){
-  var d=filteredData;
-  var total=d.reduce(function(s,r){return s+teu(r);},0);
-  var s20=d.filter(function(r){return String(r["컨테이너규격"]||"").includes("20");}).reduce(function(s,r){return s+teu(r);},0);
-  var s40=d.filter(function(r){return String(r["컨테이너규격"]||"").includes("40");}).reduce(function(s,r){return s+teu(r);},0);
-  var sOth=total-s20-s40;
-  var sizes=[
-    {lbl:"20'",val:s20,color:"#f59e0b"},
-    {lbl:"40'",val:s40,color:"#7c3aed"},
-    {lbl:"기타",val:Math.max(0,sOth),color:"#475569"}
-  ];
-  var maxV=Math.max.apply(null,sizes.map(function(s){return s.val;}));
-  document.getElementById("sizeBars").innerHTML=sizes.map(function(s){
-    var pct=total>0?(s.val/total*100).toFixed(1):0;
-    var barW=maxV>0?(s.val/maxV*100).toFixed(1):0;
-    var label=barW>25?pct+"%":"";
-    return'<div class="sz-row"><span class="sz-lbl">'+s.lbl+'</span><div class="sz-track"><div class="sz-fill" style="width:'+barW+'%;background:'+s.color+'"><span>'+label+'</span></div></div><div class="sz-vals"><span class="sz-teu">'+s.val.toLocaleString()+'</span><span class="sz-pct">'+pct+'%</span></div></div>';
-  }).join("");
+  var d=filteredData,e=d.filter(function(r){return !isFull(r);});
+  var cf={"20'":"#f59e0b","40'":"#7c3aed","40'HC":"#a855f7","기타":"#475569"},ce={"20'":"#94a3b8","40'":"#64748b","40'HC":"#475569","기타":"#334155"};
+  document.getElementById("sizeBars").innerHTML=sizeRowsHtml(d,"전체",cf)+sizeRowsHtml(e,"EMPTY",ce);
 }
 
 function setShipperTab(tab,btn){
@@ -758,7 +769,7 @@ function cloneToModal(srcKey){
   var srcOpts=JSON.parse(JSON.stringify(src.config.options||{}));
   if(srcOpts.plugins&&srcOpts.plugins.legend&&srcOpts.plugins.legend.labels)srcOpts.plugins.legend.labels.font={size:13};
   srcOpts.maintainAspectRatio=false;srcOpts.animation={duration:0};
-  modalChart=new Chart(ctx,{type:src.config.type,data:JSON.parse(JSON.stringify(src.config.data)),options:srcOpts});
+  modalChart=new Chart(ctx,{type:src.config.type,data:JSON.parse(JSON.stringify(src.config.data)),options:srcOpts,plugins:src.config.plugins||[]});
 }
 
 function openDailyModal(){
