@@ -418,7 +418,7 @@ function initDashboard(){
   var psel=document.getElementById("filterPort");var pcur=psel.value;
   var ports=summaryRows?[...new Set(summaryRows.map(function(x){return customsLabel(x[2]);}))]:[...new Set(rawData.map(portOf))];ports.sort(function(a,b){return(a.indexOf("울산")===0?-1:0)-(b.indexOf("울산")===0?-1:0)||a.localeCompare(b);});
   psel.innerHTML='<option value="all">전체</option>';
-  if(!customsDefaulted&&pcur==="all"&&ports.indexOf("울산세관(110)")>=0&&ports.indexOf("미수집")<0){pcur="울산세관(110)";customsDefaulted=true;}
+  if(!customsDefaulted&&pcur==="all"&&ports.indexOf("울산세관(110)")>=0){pcur="울산세관(110)";customsDefaulted=true;}
   ports.forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;if(p===pcur)o.selected=true;psel.appendChild(o);});
   fillVessels();
   csel.innerHTML='<option value="all">전체</option>';
