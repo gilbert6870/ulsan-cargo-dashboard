@@ -1,16 +1,65 @@
 {
   "months": {
+    "202601": {
+      "rows": 61299,
+      "teu": 90900,
+      "exp_teu": 43940,
+      "imp_teu": 46960,
+      "vessels": 103
+    },
+    "202602": {
+      "rows": 58500,
+      "teu": 86067,
+      "exp_teu": 41750,
+      "imp_teu": 44317,
+      "vessels": 108
+    },
+    "202603": {
+      "rows": 65722,
+      "teu": 96137,
+      "exp_teu": 48807,
+      "imp_teu": 47330,
+      "vessels": 103
+    },
+    "202604": {
+      "rows": 65201,
+      "teu": 95584,
+      "exp_teu": 47212,
+      "imp_teu": 48372,
+      "vessels": 112
+    },
+    "202605": {
+      "rows": 66730,
+      "teu": 101096,
+      "exp_teu": 52003,
+      "imp_teu": 49093,
+      "vessels": 104
+    },
+    "202606": {
+      "rows": 65175,
+      "teu": 96470,
+      "exp_teu": 47077,
+      "imp_teu": 49393,
+      "vessels": 109
+    },
+    "202607": {
+      "rows": 73679,
+      "teu": 112745,
+      "exp_teu": 55581,
+      "imp_teu": 57164,
+      "vessels": 107
+    },
     "202608": {
-      "rows": 3485,
-      "teu": 5396,
-      "exp_teu": 2972,
-      "imp_teu": 2424,
-      "vessels": 21
+      "rows": 62996,
+      "teu": 94631,
+      "exp_teu": 48148,
+      "imp_teu": 46483,
+      "vessels": 99
     },
     "202609": {
-      "rows": 58523,
-      "teu": 88592,
-      "exp_teu": 42175,
+      "rows": 58905,
+      "teu": 89162,
+      "exp_teu": 42745,
       "imp_teu": 46417,
       "vessels": 107
     },
@@ -21,7 +70,5 @@
       "imp_teu": 0,
       "vessels": 3
     }
-  },
-  "total_rows": 63004,
-  "total_teu": 95386
+  }
 }
