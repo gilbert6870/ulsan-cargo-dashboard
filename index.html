@@ -795,7 +795,8 @@ document.getElementById('dateFrom').value = m1ago.toISOString().slice(0,10);
 document.getElementById('dateTo').value   = today.toISOString().slice(0,10);
 
 // ── 페이지 로드 시 자동으로 prism_data.csv 불러오기
-document.addEventListener('DOMContentLoaded', loadSampleData);
+// (스크립트가 </body> 직전에 있으므로 DOM이 이미 준비됨 — 직접 호출)
+loadSampleData();
 </script>
 </body>
 </html>
