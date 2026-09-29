@@ -37,7 +37,7 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .kpi-val{font-size:20px;font-weight:700;line-height:1.1;margin:2px 0}
 .kpi-sub{font-size:10px;color:var(--muted)}
-#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr;grid-template-columns:2fr 1fr 1fr 1fr}
+#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr 130px;grid-template-columns:2fr 1fr 1fr 1fr}
 .card{background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px}
 .card-title{font-size:11px;font-weight:600;flex:1}
@@ -45,7 +45,7 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .expand-btn:hover{color:var(--text);background:var(--card2)}
 .card-body{flex:1;padding:6px;min-height:0;position:relative}
 .card-daily{grid-column:1/3;grid-row:1/2}.card-expimp{grid-column:3/4;grid-row:1/2}.card-fullempty{grid-column:4/5;grid-row:1/2}
-.card-vessel{grid-column:1/2;grid-row:2/3}.card-size{grid-column:2/3;grid-row:2/3}.card-shipper{grid-column:3/5;grid-row:2/3;display:flex;flex-direction:column}
+.card-vessel{grid-column:1/2;grid-row:2/3}.card-size{grid-column:2/3;grid-row:2/3}.card-shipper{grid-column:3/5;grid-row:2/3;display:flex;flex-direction:column}.card-carrier{grid-column:1/5;grid-row:3/4}
 /* chart tabs */
 .ctab-row{display:flex;gap:2px;flex-shrink:0}
 .ctab{background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;font-size:9px;padding:1px 6px;border-radius:3px;white-space:nowrap}
@@ -188,6 +188,11 @@ tr:hover td{background:var(--card2)}
     <div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
     <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('수출',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('수입',this)">&#xC218;&#xC785;</button></div>
     <div class="tbl-wrap"><table><thead><tr><th>&#xD654;&#xC8FC;&#xBA85;</th><th>TEU</th><th style="color:var(--exp)">&#xC218;&#xCD9C;</th><th style="color:var(--imp)">&#xC218;&#xC785;</th><th style="color:var(--green)">FULL</th><th>&#xC810;&#xC720;&#xC728;</th></tr></thead><tbody id="shipperTableBody"></tbody></table></div>
+  </div>
+  <!-- 선사별 -->
+  <div class="card card-carrier">
+    <div class="card-hdr"><span class="card-title">&#x1F6F3; &#xC120;&#xC0AC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9; (&#xC6B8;&#xC0B0;&#xD56D; &#xC804;&#xCCB4;)</span><button class="expand-btn" onclick="openModal('carrier','&#xC120;&#xC0AC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-body"><canvas id="chartCarrier"></canvas></div>
   </div>
 </div>
 <div id="modal" onclick="if(event.target===this)closeModal()">
@@ -395,7 +400,7 @@ function updateKPIs(){
 var baseOpts={responsive:true,maintainAspectRatio:false,animation:{duration:150},plugins:{legend:{labels:{font:{size:10},color:"#94a3b8"}}}};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function updateCharts(){updateMonthlyTrendChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();}
+function updateCharts(){updateMonthlyTrendChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();updateCarrierChart();}
 
 function getChartMonths(){
   var months=[],now=new Date(),curYM=now.getFullYear()*100+(now.getMonth()+1);
@@ -466,6 +471,79 @@ function updateFullEmptyChart(){
   document.getElementById("feImpNums").textContent="F:"+impFull.toLocaleString()+" E:"+impEmpty.toLocaleString();
 }
 
+function getCarrier(v){
+  if(!v)return'기타';
+  var M={'HEUNG-A':'흥아라인','KMTC':'KMTC(고려해운)','SAWASDEE':'시노코르',
+    'SINOKOR':'시노코르','HANSUNG':'한성해운','DONGJIN':'동진상선',
+    'EVER':'에버그린','COSCO':'COSCO','PANCON':'팬콘','PACIFIC':'팬오션',
+    'HONOR':'HONOR','PEGASUS':'PEGASUS','ITX':'ITX해운',
+    'WAN HAI':'완하이','WAN':'완하이','ZHONG GU':'중구물류','ZHONG':'중구물류',
+    'TS':'TS Lines','ESL':'ESL','STARSHIP':'Starship','SKY':'SKY','HAPPY':'HAPPY'};
+  for(var k in M){if(v.startsWith(k))return M[k];}
+  return v.split(' ')[0];
+}
+function updateCarrierChart(){
+  destroyChart("carrier");
+  var byC={};
+  filteredData.forEach(function(r){
+    var c=getCarrier(r["모선명"]);if(!byC[c])byC[c]={수출:0,수입:0};
+    byC[c][r["수출입구분"]]=(byC[c][r["수출입구분"]]||0)+teu(r);
+  });
+  var cs=Object.keys(byC).sort(function(a,b){return(byC[b]["수출"]+byC[b]["수입"])-(byC[a]["수출"]+byC[a]["수입"]);}).slice(0,12);
+  charts["carrier"]=new Chart(document.getElementById("chartCarrier"),{
+    type:"bar",
+    data:{labels:cs,datasets:[
+      {label:"수출",data:cs.map(function(c){return byC[c]["수출"]||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+      {label:"수입",data:cs.map(function(c){return byC[c]["수입"]||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    ]},
+    options:Object.assign({},baseOpts,{indexAxis:"y",scales:{
+      x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"}},
+      y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{display:false}}
+    }})
+  });
+}
+function openCarrierModal(){
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  var byC={};
+  filteredData.forEach(function(r){
+    var c=getCarrier(r["모선명"]);
+    if(!byC[c])byC[c]={exp:0,imp:0,vessels:new Set()};
+    var t=teu(r);
+    if(r["수출입구분"]==="수출")byC[c].exp+=t;else byC[c].imp+=t;
+    byC[c].vessels.add(r["모선명"]);
+  });
+  var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
+  var rows=Object.entries(byC).sort(function(a,b){return(b[1].exp+b[1].imp)-(a[1].exp+a[1].imp);});
+  var tblRows=rows.map(function(e,i){
+    var name=e[0],v=e[1],tot=v.exp+v.imp;
+    var pct=allT>0?(tot/allT*100).toFixed(1):0;
+    var badge=name==="흑아라인"?' <span style="background:#2ea44f22;color:#2ea44f;font-size:9px;padding:1px 4px;border-radius:3px">자사</span>':'';
+    return'<tr><td style="text-align:left">'+(i+1)+'. '+name+badge+'</td>'
+      +'<td>'+tot.toLocaleString()+'</td>'
+      +'<td style="color:var(--exp)">'+v.exp.toLocaleString()+'</td>'
+      +'<td style="color:var(--imp)">'+v.imp.toLocaleString()+'</td>'
+      +'<td>'+v.vessels.size+'척</td>'
+      +'<td><div style="display:flex;align-items:center;gap:4px"><div style="width:60px;height:6px;background:var(--card2);border-radius:3px"><div style="width:'+Math.min(100,pct)+'%;height:100%;background:var(--accent);border-radius:3px"></div></div>'+pct+'%</div></td>'
+      +'</tr>';
+  }).join("");
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">선사별 물동량 상세</div>'
+    +'<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">선사명</th><th>TEU</th><th style="color:var(--exp)">수출</th><th style="color:var(--imp)">수입</th><th>모선수</th><th>점유율</th></tr></thead><tbody>'+tblRows+'</tbody></table></div>'
+  );
+  var byC2={};
+  filteredData.forEach(function(r){
+    var c=getCarrier(r["모선명"]);if(!byC2[c])byC2[c]={"수출":0,"수입":0};
+    byC2[c][r["수출입구분"]]=(byC2[c][r["수출입구분"]]||0)+teu(r);
+  });
+  var cs=Object.keys(byC2).sort(function(a,b){return(byC2[b]["수출"]+byC2[b]["수입"])-(byC2[a]["수출"]+byC2[a]["수입"]);});
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"bar",data:{labels:cs,datasets:[
+    {label:"수출",data:cs.map(function(c){return byC2[c]["수출"]||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:cs.map(function(c){return byC2[c]["수입"]||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]},options:Object.assign({},baseOpts,{maintainAspectRatio:false,indexAxis:"y",
+    scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},
+    y:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{display:false}}}})});
+}
 function updateVesselChart(){
   destroyChart("vessel");
   var byV={};
@@ -555,6 +633,7 @@ function openModal(key,title){
   if(key==="expimp"){openExpImpModal();return;}
   if(key==="vessel"){openVesselModal();return;}
   if(key==="size"){openSizeModal();return;}
+  if(key==="carrier"){openCarrierModal();return;}
 }
 
 function makeModalCanvas(){return'<canvas id="modalCanvas" style="width:100%;height:100%"></canvas>';}
