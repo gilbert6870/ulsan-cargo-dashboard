@@ -129,7 +129,10 @@ tr:hover td{background:var(--card2)}
   <button class="btn exp-btn" id="btnExp" onclick="setDir('수출',this)">&#xC218;&#xCD9C;</button>
   <button class="btn imp-btn" id="btnImp" onclick="setDir('수입',this)">&#xC218;&#xC785;</button>
   <div class="divider"></div>
-  <span class="ctrl-label">선사</span>
+  <span class="ctrl-label">항구</span>
+  <select id="filterPort" onchange="applyFilter()"><option value="all">전체</option></select>
+  <div class="divider"></div>
+  <span class="ctrl-label">운항선사</span>
   <select id="filterCarrier" onchange="onCarrierChange()"><option value="all">전체</option></select>
 </div>
 <div id="kpiRow">
@@ -204,7 +207,31 @@ tr:hover td{background:var(--card2)}
 <script>
 var rawData=[],filteredData=[],charts={},shipperTab="all";
 var activeDir="all",activeMonth="all",dailyTab="expimp",selectedMonths=new Set();
-var availableMonths=[],loadedMonths=new Set(),monthlyIndex={},monthlyFE={};
+var availableMonths=[],loadedMonths=new Set(),monthlyIndex={},monthlyFE={},summaryRows=null;
+// ── 분류 기준 (PLISM 원본 필드) ─────────────────────────
+// 운항선사: MRN 앞 4자리 선사부호 (26SNKO2349I → SNKO)
+var CARRIER_NAMES={SNKO:"장금상선",HASL:"흥아라인",KMTC:"고려해운",DJSC:"동진상선",PCSL:"범주해운",NSSL:"남성해운",CKCO:"천경해운",POBU:"팬오션",TSLU:"TS라인",EVER:"에버그린",WHLU:"완하이",CULN:"CU라인"};
+// 항구: MRN 국내항 UN/LOCODE
+var PORT_NAMES={KRUSN:"울산",KRPUS:"부산",KRBNP:"부산신항",KRKAN:"광양",KRINC:"인천",KRPTK:"평택",KRKPO:"포항",KRMAS:"마산",KRGUN:"군산",KRTSN:"대산",KRMOK:"목포",KRYOS:"여수",KRCHA:"진해"};
+function carrierCode(r){var c=r["운항선사코드"];if(c)return c;var m=r["MRN"]||"";return m.length>=6?m.substring(2,6):"";}
+function carrierLabel(c){if(!c)return"미상";return CARRIER_NAMES[c]?CARRIER_NAMES[c]+"("+c+")":c;}
+function carrierOf(r){return carrierLabel(carrierCode(r));}
+function portLabel(p){if(!p)return"미수집";return PORT_NAMES[p]?PORT_NAMES[p]+"("+p+")":p;}
+function portOf(r){return portLabel(r["항구"]);}
+function rowKey(r){return(r["수출입구분"]||"")+"|"+(r["MRN"]||"")+"|"+(r["컨테이너번호"]||"");}
+function trendVal(ym,kind,val){
+  if(!summaryRows){if(kind==="dir")return(monthlyIndex[ym]&&monthlyIndex[ym][val==="수출"?"exp_teu":"imp_teu"])||0;return(monthlyFE[ym]&&monthlyFE[ym][val==="F"?"full":"empty"])||0;}
+  var carrier=document.getElementById("filterCarrier").value,port=document.getElementById("filterPort").value,s=0;
+  summaryRows.forEach(function(x){
+    if(x[0]!==ym)return;
+    if(carrier!=="all"&&carrierLabel(x[1])!==carrier)return;
+    if(port!=="all"&&portLabel(x[2])!==port)return;
+    if(activeDir!=="all"&&x[3]!==activeDir)return;
+    if(kind==="dir"&&x[3]!==val)return;
+    if(kind==="fe"&&x[4]!==val)return;
+    s+=x[6];});
+  return s;
+}
 
 function parseCSV(text){
   var lines=text.trim().split("\n");
@@ -232,6 +259,7 @@ async function init(){
       var idx=await res.json();
       if(idx.months){
         monthlyIndex=idx.months;
+        try{var sres=await fetch("./data/summary.json");if(sres.ok){var sj=await sres.json();summaryRows=sj.rows||null;}}catch(e){}
 var _n=new Date(),_cym=_n.getFullYear()*100+(_n.getMonth()+1);
 availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).filter(function(m){return parseInt(m.key)<=_cym;}).sort(function(a,b){return a.key.localeCompare(b.key);});
         buildMonthButtons();
@@ -349,7 +377,11 @@ function initDashboard(){
   document.getElementById("uploadHint").style.display="none";
   document.getElementById("dash").style.display="grid";
   var csel=document.getElementById("filterCarrier");var ccur=csel.value;
-  var carriers=[...new Set(rawData.map(function(r){return getCarrier(r["모선명"]);}))].filter(Boolean).sort();
+  var carriers=summaryRows?[...new Set(summaryRows.map(function(x){return carrierLabel(x[1]);}))]:[...new Set(rawData.map(carrierOf))];carriers=carriers.filter(Boolean).sort();
+  var psel=document.getElementById("filterPort");var pcur=psel.value;
+  var ports=summaryRows?[...new Set(summaryRows.map(function(x){return portLabel(x[2]);}))]:[...new Set(rawData.map(portOf))];ports.sort(function(a,b){return(a.indexOf("울산")===0?-1:0)-(b.indexOf("울산")===0?-1:0)||a.localeCompare(b);});
+  psel.innerHTML='<option value="all">전체</option>';
+  ports.forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;if(p===pcur)o.selected=true;psel.appendChild(o);});
   csel.innerHTML='<option value="all">전체</option>';
   carriers.forEach(function(c){var o=document.createElement("option");o.value=c;o.textContent=c;if(c===ccur)o.selected=true;csel.appendChild(o);});
   var dfrom=document.getElementById("dateFrom"),dto=document.getElementById("dateTo");
@@ -365,8 +397,9 @@ function applyFilter(){
   var from=(document.getElementById("dateFrom").value||"").replace(/-/g,"");
   var to=(document.getElementById("dateTo").value||"").replace(/-/g,"");
   var carrier=document.getElementById("filterCarrier").value;
+  var port=document.getElementById("filterPort").value;
   var seenKey=new Set();var dedupData=[];
-  rawData.forEach(function(r){var k=(r["컨테이너번호"]||"")+"_"+(r["출발일자"]||"")+"_"+(r["모선명"]||"");if(!seenKey.has(k)){seenKey.add(k);dedupData.push(r);}});
+  rawData.forEach(function(r){var k=rowKey(r);if(!seenKey.has(k)){seenKey.add(k);dedupData.push(r);}});
   filteredData=dedupData.filter(function(r){
     var d=(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,8);
     var ym=d.substring(0,6);
@@ -374,14 +407,15 @@ function applyFilter(){
     if(selectedMonths.size===0&&from&&d&&d<from)return false;
     if(selectedMonths.size===0&&to&&d&&d>to)return false;
     if(activeDir!=="all"&&r["수출입구분"]!==activeDir)return false;
-    if(carrier!=="all"&&getCarrier(r["모선명"])!==carrier)return false;
+    if(carrier!=="all"&&carrierOf(r)!==carrier)return false;
+    if(port!=="all"&&portOf(r)!==port)return false;
     return true;
   });
   updateKPIs();updateCharts();updateShipperTable(shipperTab);
 }
 
 function teu(r){return parseFloat(r["TEU"]||r["teu"]||0)||0;}
-function isFull(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}
+function isFull(r){if(r["FE"])return r["FE"]==="F";return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}
 
 function updateKPIs(){
   var d=filteredData;
@@ -420,11 +454,11 @@ function updateMonthlyTrendChart(){
   var cms=getChartMonths();
   var labels=cms.map(function(ym){return parseInt(ym.slice(4))+"월";});
   var datasets=dailyTab==="expimp"?[
-    {label:"수출",data:cms.map(function(ym){return(monthlyIndex[ym]&&monthlyIndex[ym].exp_teu)||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-    {label:"수입",data:cms.map(function(ym){return(monthlyIndex[ym]&&monthlyIndex[ym].imp_teu)||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    {label:"수출",data:cms.map(function(ym){return trendVal(ym,"dir","수출");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:cms.map(function(ym){return trendVal(ym,"dir","수입");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
   ]:[
-    {label:"FULL",data:cms.map(function(ym){return(monthlyFE[ym]&&monthlyFE[ym].full)||0;}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
-    {label:"EMPTY",data:cms.map(function(ym){return(monthlyFE[ym]&&monthlyFE[ym].empty)||0;}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
+    {label:"FULL",data:cms.map(function(ym){return trendVal(ym,"fe","F");}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
+    {label:"EMPTY",data:cms.map(function(ym){return trendVal(ym,"fe","E");}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
   ];
   charts["daily"]=new Chart(document.getElementById("chartDaily"),{
     type:"bar",data:{labels:labels,datasets:datasets},
@@ -519,7 +553,7 @@ function updateCarrierChart(){
   destroyChart("carrier");
   var byC={};
   filteredData.forEach(function(r){
-    var c=getCarrier(r["모선명"]);if(!byC[c])byC[c]={수출:0,수입:0};
+    var c=carrierOf(r);if(!byC[c])byC[c]={수출:0,수입:0};
     byC[c][r["수출입구분"]]=(byC[c][r["수출입구분"]]||0)+teu(r);
   });
   var cs=Object.keys(byC).sort(function(a,b){return(byC[b]["수출"]+byC[b]["수입"])-(byC[a]["수출"]+byC[a]["수입"]);});
@@ -539,7 +573,7 @@ function openCarrierModal(){
   if(modalChart){modalChart.destroy();modalChart=null;}
   var byC={};
   filteredData.forEach(function(r){
-    var c=getCarrier(r["모선명"]);
+    var c=carrierOf(r);
     if(!byC[c])byC[c]={exp:0,imp:0,vessels:new Set()};
     var t=teu(r);
     if(r["수출입구분"]==="수출")byC[c].exp+=t;else byC[c].imp+=t;
@@ -565,7 +599,7 @@ function openCarrierModal(){
   );
   var byC2={};
   filteredData.forEach(function(r){
-    var c=getCarrier(r["모선명"]);if(!byC2[c])byC2[c]={"수출":0,"수입":0};
+    var c=carrierOf(r);if(!byC2[c])byC2[c]={"수출":0,"수입":0};
     byC2[c][r["수출입구분"]]=(byC2[c][r["수출입구분"]]||0)+teu(r);
   });
   var cs=Object.keys(byC2).sort(function(a,b){return(byC2[b]["수출"]+byC2[b]["수입"])-(byC2[a]["수출"]+byC2[a]["수입"]);});
@@ -684,8 +718,7 @@ function openDailyModal(){
   var cms=getChartMonths();
   var labels=cms.map(function(ym){return parseInt(ym.slice(4))+"월";});
   var tblRows=cms.map(function(ym){
-    var mi=monthlyIndex[ym]||{},fe=monthlyFE[ym]||{};
-    var tot=mi.teu||0,exp=mi.exp_teu||0,imp=mi.imp_teu||0,full=fe.full||0,empty=fe.empty||0;
+    var exp=trendVal(ym,"dir","수출"),imp=trendVal(ym,"dir","수입"),tot=exp+imp,full=trendVal(ym,"fe","F"),empty=trendVal(ym,"fe","E");
     var nm=ym.slice(0,4)+"년 "+parseInt(ym.slice(4))+"월";
     var nodata=tot===0;
     return'<tr'+(nodata?' style="color:var(--muted)"':'')+'>'+'<td>'+nm+'</td><td>'+(nodata?'-':tot.toLocaleString())+'</td><td style="color:#e84c4c">'+(nodata?'-':exp.toLocaleString())+'</td><td style="color:#2196F3">'+(nodata?'-':imp.toLocaleString())+'</td><td style="color:#2ea44f">'+(nodata?'-':full.toLocaleString())+'</td><td style="color:#475569">'+(nodata?'-':empty.toLocaleString())+'</td></tr>';
@@ -694,11 +727,11 @@ function openDailyModal(){
     '<div class="modal-tbl-title">월별 상세 (2026년)</div>'+
     '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">월</th><th>총TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th style="color:#475569">EMPTY</th></tr></thead><tbody>'+tblRows+'</tbody></table></div>');
   var datasets=dailyTab==="expimp"?[
-    {label:"수출",data:cms.map(function(ym){return(monthlyIndex[ym]&&monthlyIndex[ym].exp_teu)||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-    {label:"수입",data:cms.map(function(ym){return(monthlyIndex[ym]&&monthlyIndex[ym].imp_teu)||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    {label:"수출",data:cms.map(function(ym){return trendVal(ym,"dir","수출");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:cms.map(function(ym){return trendVal(ym,"dir","수입");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
   ]:[
-    {label:"FULL",data:cms.map(function(ym){return(monthlyFE[ym]&&monthlyFE[ym].full)||0;}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
-    {label:"EMPTY",data:cms.map(function(ym){return(monthlyFE[ym]&&monthlyFE[ym].empty)||0;}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
+    {label:"FULL",data:cms.map(function(ym){return trendVal(ym,"fe","F");}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
+    {label:"EMPTY",data:cms.map(function(ym){return trendVal(ym,"fe","E");}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
   ];
   var ctx=document.getElementById("modalCanvas").getContext("2d");
   modalChart=new Chart(ctx,{type:"bar",data:{labels:labels,datasets:datasets},

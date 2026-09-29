@@ -20,7 +20,8 @@ if %errorlevel% neq 0 (
 )
 
 REM Step 2: Git commit and push
-git -C "%~dp0" add data\prism_data.csv >> "%LOGFILE%" 2>&1
+"%PY%" "%~dp0build_data.py" >> "%LOGFILE%" 2>&1
+git -C "%~dp0" add data\monthly_*.csv data\index.json data\summary.json >> "%LOGFILE%" 2>&1
 git -C "%~dp0" commit -m "data: daily cargo update %DATE%" >> "%LOGFILE%" 2>&1
 git -C "%~dp0" push origin master >> "%LOGFILE%" 2>&1
 if %errorlevel% neq 0 (

@@ -103,6 +103,23 @@ async (args) => {
   };
 
   const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  // 국내항: MRN 목록의 한국 UN/LOCODE (KRUSN=울산, KRPUS=부산 ...) — 수출은 pol, 수입은 pod 우선
+  const krPort = (m, dir) => {
+    if (!m) return '';
+    const pref = dir === '수출' ? ['pol'] : ['pod', 'arv_port', 'pol'];
+    for (const k of pref) { const v = m[k]; if (v && /^KR[A-Z]{3}$/.test(String(v))) return String(v); }
+    for (const k of Object.keys(m)) { const v = m[k]; if (typeof v === 'string' && /^KR[A-Z]{3}$/.test(v)) return v; }
+    return '';
+  };
+  const extra = (mbl, dir) => ({
+    carrier_code: (mbl.mrn || '').substring(2, 6),          // MRN 앞 선사부호 = 운항선사
+    kr_port: krPort(mbl._mrn, dir),
+    customs: (mbl._mrn && mbl._mrn.customs) || '',
+    bl_type: mbl.bl_type || '',
+    fe_flag: mbl.bl_type === 'E' ? 'E' : 'F',               // bl_type E = 공컨테이너 B/L
+    cargo_cls: mbl.cargo_class || ''
+  });
+  const sample = {};
 
   const expMrnList = await fetchAllPages(
     '/plism3/oks/cms/mng/selectKmcsExpMrnList.do',
@@ -116,7 +133,8 @@ async (args) => {
         body: JSON.stringify({ req: { mrn: mrn.mrn, customs_line_code: mrn.customs_line_code, pageIndex: 1, pageRowCount: 200 } })
       });
       const d = await r.json();
-      return (d.result || []).map(m => ({ ...m, dpt_date: mrn.dpt_date, vessel_name: mrn.vessel_name, voyage_no: mrn.voyage_no }));
+      if (!sample.expMrn) sample.expMrn = mrn;
+      return (d.result || []).map(m => ({ ...m, _mrn: mrn, dpt_date: mrn.dpt_date, vessel_name: mrn.vessel_name, voyage_no: mrn.voyage_no }));
     } catch (e) { return []; }
   }, 30)).flat();
 
@@ -130,7 +148,7 @@ async (args) => {
       return (d.result || []).map(c => {
         const sz = parseCntr(c.cntr_code);
         return {
-          type: '수출', vessel: mbl.vessel_name || '', voyage: mbl.voyage_no || '',
+          type: '수출', vessel: mbl.vessel_name || '', voyage: mbl.voyage_no || '', ...extra(mbl, '수출'),
           date: mbl.dpt_date ? mbl.dpt_date.substring(0, 8) : '',
           mbl_no: mbl.mbl_no, shipper: mbl.shipper || '',
           cntr_no: c.cntr_no, cntr_size: sz.size, cntr_code: c.cntr_code,
@@ -152,7 +170,9 @@ async (args) => {
         body: JSON.stringify({ req: { mrn: mrn.mrn, customs_line_code: mrn.customs_line_code, pageIndex: 1, pageRowCount: 200 } })
       });
       const d = await r.json();
-      return (d.result || []).map(m => ({ ...m, arv_date: mrn.arv_date, vessel_name: mrn.vessel_name, voyage_no: mrn.voyage_no }));
+      if (!sample.impMrn) sample.impMrn = mrn;
+      if (!sample.impMbl && d.result && d.result[0]) sample.impMbl = d.result[0];
+      return (d.result || []).map(m => ({ ...m, _mrn: mrn, arv_date: mrn.arv_date, vessel_name: mrn.vessel_name, voyage_no: mrn.voyage_no }));
     } catch (e) { return []; }
   }, 30)).flat();
 
@@ -166,7 +186,7 @@ async (args) => {
       return (d.result || []).map(c => {
         const sz = parseCntr(c.cntr_code);
         return {
-          type: '수입', vessel: mbl.vessel_name || '', voyage: mbl.voyage_no || '',
+          type: '수입', vessel: mbl.vessel_name || '', voyage: mbl.voyage_no || '', ...extra(mbl, '수입'),
           date: mbl.arv_date || '',
           mbl_no: mbl.mbl_no, shipper: mbl.consignee || '',
           cntr_no: c.cntr_no, cntr_size: sz.size, cntr_code: c.cntr_code,
@@ -178,6 +198,7 @@ async (args) => {
 
   return {
     rows: [...expRows, ...impRows],
+    sample: sample,
     stats: {
       exp_mrn: expMrnList.length, exp_mbl: expMblList.length, exp_cntr: expRows.length,
       imp_mrn: impMrnList.length, imp_mbl: impMblList.length, imp_cntr: impRows.length,
@@ -189,13 +210,15 @@ async (args) => {
 """
 
 CSV_HEADERS = ['수출입구분','모선명','항차','출발일자','MBL번호','화주명',
-               '컨테이너번호','컨테이너규격','컨테이너코드','풀엠티구분','TEU','수량','MRN','수집일시']
+               '컨테이너번호','컨테이너규격','컨테이너코드','풀엠티구분','TEU','수량','MRN','수집일시',
+               '운항선사코드','항구','세관','BL구분','FE','화물구분']
 
 ROW_KEY_MAP = {
     '수출입구분':'type','모선명':'vessel','항차':'voyage','출발일자':'date',
     'MBL번호':'mbl_no','화주명':'shipper','컨테이너번호':'cntr_no',
     '컨테이너규격':'cntr_size','컨테이너코드':'cntr_code','풀엠티구분':'fm',
-    'TEU':'teu','수량':'qty','MRN':'mrn','수집일시':'collected'
+    'TEU':'teu','수량':'qty','MRN':'mrn','수집일시':'collected',
+    '운항선사코드':'carrier_code','항구':'kr_port','세관':'customs','BL구분':'bl_type','FE':'fe_flag','화물구분':'cargo_cls'
 }
 
 # 고유 키: 수출입구분 + MRN + MBL번호 + 컨테이너번호
@@ -252,7 +275,7 @@ def incremental_update(new_rows, output_path):
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
+        writer = csv.DictWriter(f, fieldnames=CSV_HEADERS, restval='', extrasaction='ignore')
         writer.writeheader()
         writer.writerows(all_rows)
 
@@ -532,6 +555,13 @@ def collect(date_from, date_to, full_replace=False):
         browser.close()
 
     stats = result.get('stats', {})
+    try:
+        sp = Path(__file__).parent / 'logs' / 'plism_fields_sample.json'
+        sp.parent.mkdir(parents=True, exist_ok=True)
+        sp.write_text(json.dumps(result.get('sample', {}) or {}, ensure_ascii=False, indent=2), encoding='utf-8')
+        log(f'필드 샘플 저장: {sp}')
+    except Exception as e:
+        log(f'필드 샘플 저장 실패: {e}')
     rows  = result.get('rows', [])
     log(f"수출 MRN:{stats.get('exp_mrn')} MBL:{stats.get('exp_mbl')} CNTR:{stats.get('exp_cntr')} TEU:{stats.get('exp_teu')}")
     log(f"수입 MRN:{stats.get('imp_mrn')} MBL:{stats.get('imp_mbl')} CNTR:{stats.get('imp_cntr')} TEU:{stats.get('imp_teu')}")
