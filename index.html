@@ -134,11 +134,14 @@ tr:hover td{background:var(--card2)}
   <button class="btn cg-btn" id="cgLocal" onclick="setCargo('로컬',this)">로컬</button>
   <button class="btn cg-btn" id="cgTs" onclick="setCargo('환적',this)">환적</button>
   <div class="divider"></div>
-  <span class="ctrl-label">항구</span>
+  <span class="ctrl-label">신고세관</span>
   <select id="filterPort" onchange="applyFilter()"><option value="all">전체</option></select>
   <div class="divider"></div>
-  <span class="ctrl-label">운항선사</span>
+  <span class="ctrl-label">선사부호</span>
   <select id="filterCarrier" onchange="onCarrierChange()"><option value="all">전체</option></select>
+  <div class="divider"></div>
+  <span class="ctrl-label">선박명</span>
+  <select id="filterVessel" onchange="applyFilter()" style="max-width:170px"><option value="all">전체</option></select>
 </div>
 <div id="kpiRow">
   <div class="kpi kpi-total"><div class="kpi-label">&#xCD1D; &#xBB3C;&#xB3D9;&#xB7C9;</div><div class="kpi-val" id="kpiTotalTeu">&mdash;</div><div class="kpi-sub" id="kpiTotalSub">TEU</div></div>
@@ -215,15 +218,25 @@ var rawData=[],filteredData=[],charts={},shipperTab="all";
 var activeDir="all",activeMonth="all",dailyTab="expimp",selectedMonths=new Set();
 var availableMonths=[],loadedMonths=new Set(),monthlyIndex={},monthlyFE={},summaryRows=null;
 // ── 분류 기준 (PLISM 원본 필드) ─────────────────────────
-// 운항선사: MRN 앞 4자리 선사부호 (26SNKO2349I → SNKO)
+// ── PLISM 모선별 현황 조회조건과 동일한 기준 ──
+// 기간: ETD(수출 출항일)/ETA(수입 입항일) = 출발일자
+// 신고세관: MRN 목록 customs 앞 3자리 (110=울산세관)
+// 선사부호: customs_line_code = MBL번호 앞 4자리 (HASL)
+// 선박명: MRN 목록 vessel_name
+var CUSTOMS_NAMES={"110":"울산세관","030":"부산세관","062":"광양세관","020":"인천세관","016":"평택세관"};
 var CARRIER_NAMES={SNKO:"장금상선",HASL:"흥아라인",KMTC:"고려해운",DJSC:"동진상선",PCSL:"범주해운",NSSL:"남성해운",CKCO:"천경해운",POBU:"팬오션",TSLU:"TS라인",EVER:"에버그린",WHLU:"완하이",CULN:"CU라인"};
 // 항구: MRN 국내항 UN/LOCODE
 var PORT_NAMES={KRUSN:"울산",KRPUS:"부산",KRBNP:"부산신항",KRKAN:"광양",KRINC:"인천",KRPTK:"평택",KRKPO:"포항",KRMAS:"마산",KRGUN:"군산",KRTSN:"대산",KRMOK:"목포",KRYOS:"여수",KRCHA:"진해"};
 function carrierCode(r){var c=r["운항선사코드"];if(c)return c;var m=r["MRN"]||"";return m.length>=6?m.substring(2,6):"";}
 function carrierLabel(c){if(!c)return"미상";return CARRIER_NAMES[c]?CARRIER_NAMES[c]+"("+c+")":c;}
-function carrierOf(r){return carrierLabel(carrierCode(r));}
+function blCode(r){return(r["MBL번호"]||"").substring(0,4);}
+function carrierOf(r){return carrierLabel(blCode(r));}
+function operatorOf(r){return carrierLabel(carrierCode(r));}
 function portLabel(p){if(!p)return"미수집";return PORT_NAMES[p]?PORT_NAMES[p]+"("+p+")":p;}
-function portOf(r){return portLabel(r["항구"]);}
+function customsCode(r){return(r["세관"]||"").substring(0,3);}
+function customsLabel(c){if(!c)return"미수집";return CUSTOMS_NAMES[c]?CUSTOMS_NAMES[c]+"("+c+")":c;}
+function portOf(r){return customsLabel(customsCode(r));}
+var customsDefaulted=false;
 // 환적: 수입 화물구분 T(환적 양하), 수출 화물구분 R(환적 적하) — 양하·적하 각각 집계
 var activeCargo="all";
 function cargoCls(r){return r["화물구분"]||(r["수출입구분"]==="수입"?r["풀엠티구분"]:"")||"";}
@@ -233,11 +246,12 @@ function sumTeu(a){return a.reduce(function(s,r){return s+teu(r);},0);}
 function rowKey(r){return(r["수출입구분"]||"")+"|"+(r["MRN"]||"")+"|"+(r["컨테이너번호"]||"");}
 function trendVal(ym,kind,val){
   if(!summaryRows){if(kind==="dir")return(monthlyIndex[ym]&&monthlyIndex[ym][val==="수출"?"exp_teu":"imp_teu"])||0;return(monthlyFE[ym]&&monthlyFE[ym][val==="F"?"full":"empty"])||0;}
-  var carrier=document.getElementById("filterCarrier").value,port=document.getElementById("filterPort").value,s=0;
+  var carrier=document.getElementById("filterCarrier").value,vessel=document.getElementById("filterVessel").value,port=document.getElementById("filterPort").value,s=0;
   summaryRows.forEach(function(x){
     if(x[0]!==ym)return;
-    if(carrier!=="all"&&carrierLabel(x[1])!==carrier)return;
-    if(port!=="all"&&portLabel(x[2])!==port)return;
+    if(carrier!=="all"&&carrierLabel(x[8]||"")!==carrier)return;
+    if(vessel!=="all"&&(x[9]||"")!==vessel)return;
+    if(port!=="all"&&customsLabel(x[2])!==port)return;
     if(activeDir!=="all"&&x[3]!==activeDir)return;
     var ts=(x[5]==="T"||x[5]==="R");
     if(activeCargo==="로컬"&&ts)return;if(activeCargo==="환적"&&!ts)return;
@@ -372,8 +386,16 @@ function onDateChange(){
   activeMonth="custom";applyFilter();
 }
 
+function fillVessels(){
+  var carrier=document.getElementById("filterCarrier").value,vsel=document.getElementById("filterVessel"),vcur=vsel.value;
+  var vs=summaryRows?summaryRows.filter(function(x){return carrier==="all"||carrierLabel(x[8]||"")===carrier;}).map(function(x){return x[9]||"";})
+                    :rawData.filter(function(r){return carrier==="all"||carrierOf(r)===carrier;}).map(function(r){return r["모선명"];});
+  vs=[...new Set(vs)].filter(Boolean).sort();
+  vsel.innerHTML='<option value="all">전체</option>';
+  vs.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;if(v===vcur)o.selected=true;vsel.appendChild(o);});
+}
 function onCarrierChange(){
-  applyFilter();
+  fillVessels();applyFilter();
 }
 function setDir(dir,btn){
   activeDir=dir;
@@ -392,11 +414,13 @@ function initDashboard(){
   document.getElementById("uploadHint").style.display="none";
   document.getElementById("dash").style.display="grid";
   var csel=document.getElementById("filterCarrier");var ccur=csel.value;
-  var carriers=summaryRows?[...new Set(summaryRows.map(function(x){return carrierLabel(x[1]);}))]:[...new Set(rawData.map(carrierOf))];carriers=carriers.filter(Boolean).sort();
+  var carriers=summaryRows?[...new Set(summaryRows.map(function(x){return carrierLabel(x[8]||"");}))]:[...new Set(rawData.map(carrierOf))];carriers=carriers.filter(Boolean).sort();
   var psel=document.getElementById("filterPort");var pcur=psel.value;
-  var ports=summaryRows?[...new Set(summaryRows.map(function(x){return portLabel(x[2]);}))]:[...new Set(rawData.map(portOf))];ports.sort(function(a,b){return(a.indexOf("울산")===0?-1:0)-(b.indexOf("울산")===0?-1:0)||a.localeCompare(b);});
+  var ports=summaryRows?[...new Set(summaryRows.map(function(x){return customsLabel(x[2]);}))]:[...new Set(rawData.map(portOf))];ports.sort(function(a,b){return(a.indexOf("울산")===0?-1:0)-(b.indexOf("울산")===0?-1:0)||a.localeCompare(b);});
   psel.innerHTML='<option value="all">전체</option>';
+  if(!customsDefaulted&&pcur==="all"&&ports.indexOf("울산세관(110)")>=0&&ports.indexOf("미수집")<0){pcur="울산세관(110)";customsDefaulted=true;}
   ports.forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;if(p===pcur)o.selected=true;psel.appendChild(o);});
+  fillVessels();
   csel.innerHTML='<option value="all">전체</option>';
   carriers.forEach(function(c){var o=document.createElement("option");o.value=c;o.textContent=c;if(c===ccur)o.selected=true;csel.appendChild(o);});
   var dfrom=document.getElementById("dateFrom"),dto=document.getElementById("dateTo");
@@ -413,6 +437,7 @@ function applyFilter(){
   var to=(document.getElementById("dateTo").value||"").replace(/-/g,"");
   var carrier=document.getElementById("filterCarrier").value;
   var port=document.getElementById("filterPort").value;
+  var vessel=document.getElementById("filterVessel").value;
   var seenKey=new Set();var dedupData=[];
   rawData.forEach(function(r){var k=rowKey(r);if(!seenKey.has(k)){seenKey.add(k);dedupData.push(r);}});
   filteredData=dedupData.filter(function(r){
@@ -423,6 +448,7 @@ function applyFilter(){
     if(selectedMonths.size===0&&to&&d&&d>to)return false;
     if(activeDir!=="all"&&r["수출입구분"]!==activeDir)return false;
     if(carrier!=="all"&&carrierOf(r)!==carrier)return false;
+    if(vessel!=="all"&&r["모선명"]!==vessel)return false;
     if(port!=="all"&&portOf(r)!==port)return false;
     if(activeCargo==="로컬"&&isTS(r))return false;
     if(activeCargo==="환적"&&!isTS(r))return false;
