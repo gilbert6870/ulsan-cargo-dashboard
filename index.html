@@ -4,799 +4,486 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>흥아라인 울산항 물동량 대시보드</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root {
-  --primary: #1a3a6b;
-  --accent:  #e84c4c;
-  --accent2: #2196F3;
-  --bg:      #f0f4f8;
-  --card:    #ffffff;
-  --border:  #d4dde8;
-  --text:    #1e2d3d;
-  --muted:   #637488;
-  --green:   #2ea44f;
-  --orange:  #f59e0b;
-  --red:     #ef4444;
-  --teal:    #0891b2;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-  background: var(--bg); color: var(--text); min-height: 100vh; }
-
-/* ── 헤더 ── */
-.header {
-  background: linear-gradient(135deg, var(--primary) 0%, #2a5298 100%);
-  color: #fff; padding: 16px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(0,0,0,.25);
-  position: sticky; top: 0; z-index: 100;
-}
-.header-left { display: flex; align-items: center; gap: 14px; }
-.logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-.logo span { color: #64b5f6; }
-.subtitle { font-size: 12px; opacity: .75; margin-top: 2px; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.live-badge {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.15); border-radius: 20px; padding: 5px 12px;
-  font-size: 12px; font-weight: 600;
-}
-.pulse { width: 8px; height: 8px; background: #4caf50; border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite; }
-@keyframes pulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(76,175,80,.7); }
-  50%      { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
-}
-#lastUpdate { font-size: 11px; opacity: .7; }
-
-/* ── 컨트롤 바 ── */
-.control-bar {
-  background: var(--card); border-bottom: 1px solid var(--border);
-  padding: 10px 24px;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-}
-.control-bar label { font-size: 12px; color: var(--muted); font-weight: 600; }
-.control-bar select, .control-bar input[type=date] {
-  border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
-  font-size: 13px; color: var(--text); background: #fff; cursor: pointer;
-}
-.control-bar select:focus, .control-bar input:focus { outline: 2px solid var(--accent2); }
-.btn {
-  padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer;
-  font-size: 13px; font-weight: 600; transition: all .2s;
-}
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: #2a5298; transform: translateY(-1px); }
-.btn-upload { background: var(--green); color: #fff; }
-.btn-upload:hover { background: #238a3e; }
-.btn-export { background: var(--teal); color: #fff; }
-.btn-export:hover { background: #0770a1; }
-#fileInput { display: none; }
-
-/* ── 메인 레이아웃 ── */
-.main { padding: 20px 24px; }
-
-/* ── KPI 타일 ── */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px; margin-bottom: 20px;
-}
-.kpi {
-  background: var(--card); border-radius: 12px; padding: 16px 18px;
-  border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.06);
-  position: relative; overflow: hidden;
-}
-.kpi::before {
-  content: ''; position: absolute; top: 0; left: 0;
-  width: 4px; height: 100%;
-}
-.kpi.blue::before   { background: var(--accent2); }
-.kpi.red::before    { background: var(--accent); }
-.kpi.green::before  { background: var(--green); }
-.kpi.orange::before { background: var(--orange); }
-.kpi.teal::before   { background: var(--teal); }
-.kpi.purple::before { background: #7c3aed; }
-.kpi-label { font-size: 11px; color: var(--muted); font-weight: 600;
-  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-.kpi-val { font-size: 28px; font-weight: 800; line-height: 1;
-  color: var(--text); }
-.kpi-unit { font-size: 12px; color: var(--muted); margin-left: 3px; }
-.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.kpi-delta { display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
-  margin-top: 5px; }
-.kpi-delta.up   { background: #dcfce7; color: #16a34a; }
-.kpi-delta.down { background: #fee2e2; color: #dc2626; }
-
-/* ── 차트 그리드 ── */
-.chart-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px; margin-bottom: 20px;
-}
-.chart-grid.triple { grid-template-columns: 2fr 1fr 1fr; }
-@media (max-width: 900px) {
-  .chart-grid, .chart-grid.triple { grid-template-columns: 1fr; }
-}
-.card {
-  background: var(--card); border-radius: 12px; padding: 18px 20px;
-  border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.06);
-}
-.card-title {
-  font-size: 13px; font-weight: 700; color: var(--primary);
-  margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
-}
-.card-title .icon { font-size: 16px; }
-.chart-wrap { position: relative; }
-
-/* ── 화주 테이블 ── */
-.shipper-table { width: 100%; border-collapse: collapse; }
-.shipper-table th {
-  background: #f8fafc; font-size: 11px; color: var(--muted);
-  font-weight: 700; padding: 8px 10px; text-align: right;
-  border-bottom: 2px solid var(--border);
-}
-.shipper-table th:first-child { text-align: left; }
-.shipper-table td {
-  font-size: 13px; padding: 8px 10px; border-bottom: 1px solid #f1f5f9;
-  text-align: right;
-}
-.shipper-table td:first-child { text-align: left; font-weight: 600; }
-.shipper-table tr:hover td { background: #f8fafc; }
-.rank-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%; font-size: 11px;
-  font-weight: 800; margin-right: 6px;
-}
-.rank-1 { background: #fef3c7; color: #92400e; }
-.rank-2 { background: #f1f5f9; color: #475569; }
-.rank-3 { background: #fed7aa; color: #c2410c; }
-.rank-n { background: #f0f4f8; color: var(--muted); }
-.bar-mini { height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 3px; }
-.bar-fill { height: 4px; border-radius: 2px; background: var(--accent2); }
-
-/* ── 모선 타임라인 ── */
-.vessel-list { display: flex; flex-direction: column; gap: 10px; }
-.vessel-item {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-  background: #f8fafc; border-radius: 8px; border-left: 3px solid var(--accent2);
-}
-.vessel-name { font-size: 13px; font-weight: 700; flex: 1; }
-.vessel-teu { font-size: 18px; font-weight: 800; color: var(--primary); }
-.vessel-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
-
-/* ── 업로드 안내 ── */
-.upload-hint {
-  text-align: center; padding: 60px 20px; color: var(--muted);
-}
-.upload-hint .big-icon { font-size: 56px; margin-bottom: 14px; }
-.upload-hint h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
-.upload-hint p { font-size: 13px; line-height: 1.7; }
-
-/* ── 알림 바 ── */
-.alert {
-  padding: 10px 16px; border-radius: 8px; margin-bottom: 16px;
-  font-size: 13px; display: flex; align-items: center; gap: 8px;
-}
-.alert-info { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
-.alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-
-/* ── 필터 탭 ── */
-.tab-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-.tab-btn {
-  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-  background: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: all .15s; color: var(--muted);
-}
-.tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.tab-btn:hover:not(.active) { background: #f0f4f8; }
-
-/* ── Footer ── */
-footer {
-  text-align: center; padding: 16px; font-size: 11px; color: var(--muted);
-  border-top: 1px solid var(--border); margin-top: 10px;
-  background: var(--card);
-}
+:root{--bg:#0f172a;--card:#1e293b;--card2:#263348;--border:#334155;--accent:#2196F3;--exp:#e84c4c;--imp:#2196F3;--green:#2ea44f;--yellow:#f59e0b;--purple:#7c3aed;--text:#f1f5f9;--muted:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+header{background:var(--card);border-bottom:1px solid var(--border);height:44px;display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0}
+header h1{font-size:14px;font-weight:700;white-space:nowrap}
+header h1 span{color:var(--accent)}
+#statusBar{font-size:11px;color:var(--muted);margin-left:auto;text-align:right;white-space:nowrap}
+#loadingBar{width:180px;height:3px;background:var(--border);border-radius:2px;display:none}
+#loadingFill{height:100%;background:var(--accent);border-radius:2px;width:0;transition:width .3s}
+#controls{background:var(--card2);border-bottom:1px solid var(--border);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
+.ctrl-label{font-size:11px;color:var(--muted);white-space:nowrap}
+.btn{padding:3px 9px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:12px;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.exp-btn.active{background:var(--exp);border-color:var(--exp)}
+.btn.imp-btn.active{background:#1565c0;border-color:#1565c0}
+.divider{width:1px;height:22px;background:var(--border);flex-shrink:0}
+input[type=date]{background:var(--card);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:2px 6px;font-size:12px;height:26px}
+input[type=date]:focus{outline:none;border-color:var(--accent)}
+select{background:var(--card);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:2px 6px;font-size:12px;height:26px;cursor:pointer}
+#alertBar{display:none;padding:4px 12px;font-size:12px;align-items:center;gap:8px;flex-shrink:0}
+.alert-info{background:#1e3a5f;color:#7dd3fc}
+.alert-success{background:#14532d;color:#86efac}
+.alert-error{background:#450a0a;color:#fca5a5}
+#kpiRow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:6px 12px;flex-shrink:0}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-total::before{background:var(--accent)}.kpi-exp::before{background:var(--exp)}.kpi-imp::before{background:var(--imp)}.kpi-v::before{background:var(--yellow)}.kpi-s::before{background:var(--purple)}.kpi-f::before{background:var(--green)}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kpi-val{font-size:20px;font-weight:700;line-height:1.1;margin:2px 0}
+.kpi-sub{font-size:10px;color:var(--muted)}
+#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr;grid-template-columns:2fr 1fr 1fr 1fr}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.card-title{font-size:11px;font-weight:600;flex:1}
+.expand-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px;line-height:1}
+.expand-btn:hover{color:var(--text);background:var(--card2)}
+.card-body{flex:1;padding:6px;min-height:0;position:relative}
+.card-daily{grid-column:1/3;grid-row:1/2}.card-expimp{grid-column:3/4;grid-row:1/2}.card-fullempty{grid-column:4/5;grid-row:1/2}
+.card-vessel{grid-column:1/2;grid-row:2/3}.card-size{grid-column:2/3;grid-row:2/3}.card-shipper{grid-column:3/5;grid-row:2/3;display:flex;flex-direction:column}
+.tab-row{display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 8px;border-radius:4px}
+.tab-btn.active{background:var(--accent);color:#fff}
+.tbl-wrap{overflow-y:auto;flex:1;min-height:0}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{position:sticky;top:0;background:var(--card2);color:var(--muted);font-weight:600;padding:4px 6px;text-align:right;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:3px 6px;border-bottom:1px solid rgba(51,65,85,.5);text-align:right}
+td:first-child{text-align:left;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:var(--card2)}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font-size:8px;font-weight:700;margin-right:3px}
+.rank-1{background:#f59e0b;color:#000}.rank-2{background:#94a3b8;color:#000}.rank-3{background:#b45309;color:#fff}.rank-n{background:var(--border);color:var(--muted)}
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;padding:20px}
+#modalBox{background:var(--card);border-radius:12px;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
+#modalHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+#modalTitle{font-size:15px;font-weight:700;flex:1}
+#modalClose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:4px 8px}
+#modalClose:hover{color:var(--text)}
+#modalBody{flex:1;padding:16px;position:relative;min-height:0;overflow:auto}
+#uploadHint{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted)}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 </style>
 </head>
 <body>
-
-<!-- ═══════════════════ 헤더 ═══════════════════ -->
-<div class="header">
-  <div class="header-left">
-    <div>
-      <div class="logo">흥아라인 <span>울산항</span> 물동량</div>
-      <div class="subtitle">HEUNG-A LINE · Ulsan Port Cargo Dashboard</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="live-badge">
-      <div class="pulse"></div> LIVE
-    </div>
-    <div id="lastUpdate" style="text-align:right;">
-      마지막 업데이트<br>—
-    </div>
+<header>
+  <h1>&#x1F6A2; &#xD758;&#xC544;&#xB77C;&#xC778; <span>&#xC6B8;&#xC0B0;&#xD56D;</span> &#xBB3C;&#xB3D9;&#xB7C9;</h1>
+  <div id="loadingBar"><div id="loadingFill"></div></div>
+  <div id="statusBar">&#xB85C;&#xB529; &#xC911;...</div>
+  <label style="cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:5px;flex-shrink:0" title="CSV &#xC9C1;&#xC811; &#xC5C5;&#xB85C;&#xB4DC;">
+    &#x1F4C2; CSV<input type="file" accept=".csv" style="display:none" onchange="loadFile(event)">
+  </label>
+  <button class="btn" style="font-size:11px;flex-shrink:0" onclick="exportCSV()">&#x2B07; &#xB0B4;&#xBCF4;&#xB0B4;&#xAE30;</button>
+</header>
+<div id="alertBar"></div>
+<div id="controls">
+  <span class="ctrl-label">&#x1F4C5; &#xC6D4;</span>
+  <div id="monthBtns" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+  <div class="divider"></div>
+  <span class="ctrl-label">&#xAE30;&#xAC04;</span>
+  <input type="date" id="dateFrom" onchange="onDateChange()">
+  <span style="color:var(--muted);font-size:12px">~</span>
+  <input type="date" id="dateTo" onchange="onDateChange()">
+  <div class="divider"></div>
+  <span class="ctrl-label">&#xAD6C;&#xBD84;</span>
+  <button class="btn active" id="btnAll" onclick="setDir('all',this)">&#xC804;&#xCCB4;</button>
+  <button class="btn exp-btn" id="btnExp" onclick="setDir('\uc218\ucd9c',this)">&#xC218;&#xCD9C;</button>
+  <button class="btn imp-btn" id="btnImp" onclick="setDir('\uc218\uc785',this)">&#xC218;&#xC785;</button>
+  <div class="divider"></div>
+  <span class="ctrl-label">&#xBAA8;&#xC120;</span>
+  <select id="filterVessel" onchange="applyFilter()"><option value="all">&#xC804;&#xCCB4;</option></select>
+</div>
+<div id="kpiRow">
+  <div class="kpi kpi-total"><div class="kpi-label">&#xCD1D; &#xBB3C;&#xB3D9;&#xB7C9;</div><div class="kpi-val" id="kpiTotalTeu">&mdash;</div><div class="kpi-sub" id="kpiTotalSub">TEU</div></div>
+  <div class="kpi kpi-exp"><div class="kpi-label">&#xC218;&#xCD9C; TEU</div><div class="kpi-val" id="kpiExpTeu">&mdash;</div><div class="kpi-sub" id="kpiExpSub">&mdash;</div></div>
+  <div class="kpi kpi-imp"><div class="kpi-label">&#xC218;&#xC785; TEU</div><div class="kpi-val" id="kpiImpTeu">&mdash;</div><div class="kpi-sub" id="kpiImpSub">&mdash;</div></div>
+  <div class="kpi kpi-v"><div class="kpi-label">&#xBAA8;&#xC120; &#xC218;</div><div class="kpi-val" id="kpiVessels">&mdash;</div><div class="kpi-sub" id="kpiVesselsSub">&#xCC99;</div></div>
+  <div class="kpi kpi-s"><div class="kpi-label">&#xD654;&#xC8FC; &#xC218;</div><div class="kpi-val" id="kpiShippers">&mdash;</div><div class="kpi-sub">&#xAC1C;&#xC0AC;</div></div>
+  <div class="kpi kpi-f"><div class="kpi-label">FULL &#xBE44;&#xC728;</div><div class="kpi-val" id="kpiFullRate">&mdash;</div><div class="kpi-sub" id="kpiFullSub">%</div></div>
+</div>
+<div id="uploadHint"><div style="font-size:48px">&#x1F4E6;</div><div>&#xB370;&#xC774;&#xD130;&#xB97C; &#xBD88;&#xB7EC;&#xC624;&#xB294; &#xC911;&#xC785;&#xB2C8;&#xB2E4;...</div></div>
+<div id="dash" style="display:none">
+  <div class="card card-daily"><div class="card-hdr"><span class="card-title">&#x1F4CA; &#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;</span><button class="expand-btn" onclick="openModal('daily','&#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartDaily"></canvas></div></div>
+  <div class="card card-expimp"><div class="card-hdr"><span class="card-title">&#x1F504; &#xC218;&#xCD9C;/&#xC218;&#xC785;</span><button class="expand-btn" onclick="openModal('expimp','&#xC218;&#xCD9C;/&#xC218;&#xC785; &#xBE44;&#xC728;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartExpimp"></canvas></div></div>
+  <div class="card card-fullempty"><div class="card-hdr"><span class="card-title">&#x1F4E6; FULL/EMPTY</span><button class="expand-btn" onclick="openModal('fullempty','FULL/EMPTY &#xBE44;&#xC728;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartFullempty"></canvas></div></div>
+  <div class="card card-vessel"><div class="card-hdr"><span class="card-title">&#x1F6A2; &#xBAA8;&#xC120;&#xBCC4; TEU</span><button class="expand-btn" onclick="openModal('vessel','&#xBAA0;&#xC120;&#xBCC4; TEU')">&#x26F6;</button></div><div class="card-body"><canvas id="chartVessel"></canvas></div></div>
+  <div class="card card-size"><div class="card-hdr"><span class="card-title">&#x1F4D0; &#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;</span><button class="expand-btn" onclick="openModal('size','&#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartSize"></canvas></div></div>
+  <div class="card card-shipper"><div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
+    <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('\uc218\ucd9c',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('\uc218\uc785',this)">&#xC218;&#xC785;</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>&#xD654;&#xC8FC;&#xBA85;</th><th>TEU</th><th style="color:var(--exp)">&#xC218;&#xCD9C;</th><th style="color:var(--imp)">&#xC218;&#xC785;</th><th style="color:var(--green)">FULL</th><th>&#xC810;&#xC720;&#xC728;</th></tr></thead><tbody id="shipperTableBody"></tbody></table></div>
   </div>
 </div>
-
-<!-- ═══════════════════ 컨트롤 바 ═══════════════════ -->
-<div class="control-bar">
-  <label>📂 데이터 로드</label>
-  <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
-    📤 CSV 파일 업로드
-  </button>
-  <input type="file" id="fileInput" accept=".csv,.xlsx" onchange="loadFile(event)">
-  <button class="btn btn-primary" onclick="loadSampleData()">🧪 샘플 데이터</button>
-
-  <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-
-  <label>기간</label>
-  <input type="date" id="dateFrom">
-  <label>~</label>
-  <input type="date" id="dateTo">
-  <button class="btn btn-primary" onclick="applyFilter()">🔍 조회</button>
-
-  <label>수출입</label>
-  <select id="filterDir" onchange="applyFilter()">
-    <option value="all">전체</option>
-    <option value="수출">수출</option>
-    <option value="수입">수입</option>
-  </select>
-
-  <label>모선</label>
-  <select id="filterVessel" onchange="applyFilter()">
-    <option value="all">전체</option>
-  </select>
-
-  <button class="btn btn-export" onclick="exportCSV()">💾 CSV 내보내기</button>
+<div id="modal" onclick="if(event.target===this)closeModal()">
+  <div id="modalBox"><div id="modalHdr"><span id="modalTitle"></span><button id="modalClose" onclick="closeModal()">&#x2715;</button></div><div id="modalBody"></div></div>
 </div>
-
-<!-- ═══════════════════ 메인 ═══════════════════ -->
-<div class="main" id="mainContent">
-  <!-- 초기 업로드 안내 -->
-  <div class="upload-hint" id="uploadHint">
-    <div class="big-icon">⚓</div>
-    <h3>울산항 물동량 데이터를 로드하세요</h3>
-    <p>
-      <strong>방법 1</strong>: 프리즘에서 내려받은 CSV 파일을 <strong>CSV 파일 업로드</strong> 버튼으로 올려주세요<br>
-      <strong>방법 2</strong>: <strong>🧪 샘플 데이터</strong>로 대시보드 미리 보기<br>
-      <strong>방법 3</strong>: <code>run_watch.bat</code> 실행 시 30분마다 자동 수집·갱신
-    </p>
-  </div>
-
-  <!-- 대시보드 (데이터 로드 후 표시) -->
-  <div id="dashboard" style="display:none;">
-
-    <!-- 알림 -->
-    <div id="alertBar" class="alert alert-info" style="display:none;"></div>
-
-    <!-- KPI 타일 -->
-    <div class="kpi-row">
-      <div class="kpi blue">
-        <div class="kpi-label">총 TEU (누적)</div>
-        <div><span class="kpi-val" id="kpiTotalTeu">0</span><span class="kpi-unit">TEU</span></div>
-        <div class="kpi-sub" id="kpiTotalTeuSub">—</div>
-      </div>
-      <div class="kpi red">
-        <div class="kpi-label">수출 TEU</div>
-        <div><span class="kpi-val" id="kpiExportTeu">0</span><span class="kpi-unit">TEU</span></div>
-        <div class="kpi-sub" id="kpiExportSub">—</div>
-      </div>
-      <div class="kpi green">
-        <div class="kpi-label">수입 TEU</div>
-        <div><span class="kpi-val" id="kpiImportTeu">0</span><span class="kpi-unit">TEU</span></div>
-        <div class="kpi-sub" id="kpiImportSub">—</div>
-      </div>
-      <div class="kpi orange">
-        <div class="kpi-label">운항 모선 수</div>
-        <div><span class="kpi-val" id="kpiVessels">0</span><span class="kpi-unit">척</span></div>
-        <div class="kpi-sub" id="kpiVesselsSub">—</div>
-      </div>
-      <div class="kpi teal">
-        <div class="kpi-label">화주 수</div>
-        <div><span class="kpi-val" id="kpiShippers">0</span><span class="kpi-unit">개사</span></div>
-        <div class="kpi-sub">—</div>
-      </div>
-      <div class="kpi purple">
-        <div class="kpi-label">FULL 비율</div>
-        <div><span class="kpi-val" id="kpiFullRate">0</span><span class="kpi-unit">%</span></div>
-        <div class="kpi-sub" id="kpiFullRateSub">—</div>
-      </div>
-    </div>
-
-    <!-- 차트 1행: 일별 추이 + 수출/수입 도넛 -->
-    <div class="chart-grid" style="grid-template-columns: 2fr 1fr; margin-bottom:16px;">
-      <div class="card">
-        <div class="card-title"><span class="icon">📈</span>일별 TEU 추이 (수출/수입)</div>
-        <div class="chart-wrap"><canvas id="chartDaily" height="130"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">🔄</span>수출 / 수입 비율</div>
-        <div class="chart-wrap"><canvas id="chartExpImp" height="130"></canvas></div>
-      </div>
-    </div>
-
-    <!-- 차트 2행: 모선별 + 풀/엠티 + 사이즈 -->
-    <div class="chart-grid triple" style="margin-bottom:16px;">
-      <div class="card">
-        <div class="card-title"><span class="icon">🚢</span>모선별 TEU 현황</div>
-        <div class="chart-wrap"><canvas id="chartVessel" height="150"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">📦</span>FULL / EMPTY</div>
-        <div class="chart-wrap"><canvas id="chartFullEmpty" height="150"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">📐</span>20' / 40' 사이즈</div>
-        <div class="chart-wrap"><canvas id="chartSize" height="150"></canvas></div>
-      </div>
-    </div>
-
-    <!-- 3행: 화주별 실적 테이블 + 모선 목록 -->
-    <div class="chart-grid" style="grid-template-columns: 3fr 2fr;">
-      <div class="card">
-        <div class="card-title"><span class="icon">🏢</span>화주별 물동량 실적 (TEU 기준)</div>
-        <div class="tab-row">
-          <button class="tab-btn active" onclick="setShipperTab('all',this)">전체</button>
-          <button class="tab-btn" onclick="setShipperTab('수출',this)">수출</button>
-          <button class="tab-btn" onclick="setShipperTab('수입',this)">수입</button>
-        </div>
-        <div style="overflow-x:auto;">
-          <table class="shipper-table">
-            <thead>
-              <tr>
-                <th style="text-align:left;">화주명</th>
-                <th>총 TEU</th>
-                <th>수출</th>
-                <th>수입</th>
-                <th>FULL</th>
-                <th>EMPTY</th>
-                <th>비중</th>
-              </tr>
-            </thead>
-            <tbody id="shipperTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">⚓</span>모선별 집계</div>
-        <div id="vesselList" class="vessel-list"></div>
-      </div>
-    </div>
-
-  </div><!-- /dashboard -->
-</div>
-
-<footer>
-  흥아라인 울산사무소 · Heungaline Ulsan Office · 물동량 관리 시스템 v1.0 &nbsp;|&nbsp;
-  데이터 출처: 프리즘(PRISM) 수출입 신고 승인 데이터
-</footer>
-
 <script>
-// ════════════════════════════════════════════
-// 데이터 관리
-// ════════════════════════════════════════════
-let rawData = [];
-let filteredData = [];
-let charts = {};
-let shipperTab = 'all';
+var rawData=[],filteredData=[],charts={},shipperTab="all";
+var activeDir="all",activeMonth="all";
+var availableMonths=[],loadedMonths=new Set();
 
-// ── CSV 파서 ──────────────────────────────
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
-  return lines.slice(1).map(line => {
-    // 따옴표 처리
-    const cols = [];
-    let cur = '', inQ = false;
-    for (let c of line) {
-      if (c === '"') inQ = !inQ;
-      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-      else cur += c;
-    }
+function parseCSV(text){
+  var lines=text.trim().split("\n");
+  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/^"|"$/g,"");});
+  return lines.slice(1).map(function(line){
+    var cols=[],cur="",inQ=false;
+    for(var i=0;i<line.length;i++){var c=line[i];if(c==="\""){inQ=!inQ;continue;}if(c===","&&!inQ){cols.push(cur.trim());cur="";continue;}cur+=c;}
     cols.push(cur.trim());
-    const row = {};
-    headers.forEach((h, i) => row[h] = cols[i] || '');
+    var row={};headers.forEach(function(h,i){row[h]=(cols[i]||"").replace(/^"|"$/g,"");});
     return row;
+  }).filter(function(r){return Object.values(r).some(function(v){return v;});});
+}
+
+function setLoading(pct,msg){
+  document.getElementById("loadingBar").style.display=pct<100?"block":"none";
+  document.getElementById("loadingFill").style.width=pct+"%";
+  document.getElementById("statusBar").textContent=msg;
+}
+
+async function init(){
+  setLoading(10,"인덱스 로딩 중...");
+  try{
+    var res=await fetch("./data/index.json");
+    if(res.ok){
+      var idx=await res.json();
+      if(idx.months){
+        availableMonths=Object.entries(idx.months).map(function([k,v]){return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).sort(function(a,b){return a.key.localeCompare(b.key);});
+        buildMonthButtons();
+        var latest=availableMonths[availableMonths.length-1];
+        await loadMonth(latest.key);return;
+      }
+    }
+  }catch(e){}
+  setLoading(30,"데이터 로딩 중...");
+  try{
+    var res=await fetch("./data/prism_data.csv");
+    if(res.ok){
+      var text=await res.text();
+      rawData=parseCSV(text);detectMonths();buildMonthButtons();
+      setLoading(100,"");showAlert("✅ 데이터 로드 완료 — "+rawData.length.toLocaleString()+"건","success");
+      initDashboard();applyFilter();return;
+    }
+  }catch(e){}
+  setLoading(100,"데이터 없음");
+  showAlert("⚠️ 데이터를 찾을 수 없습니다. CSV를 직접 업로드해주세요.","error");
+  document.getElementById("uploadHint").innerHTML="<div style=\"font-size:48px\">📤</div><div>CSV 파일을 업로드해주세요.</div>";
+}
+
+function detectMonths(){
+  var s=new Set();
+  rawData.forEach(function(r){var d=(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6);if(d.length===6)s.add(d);});
+  availableMonths=[...s].sort().map(function(k){return{key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"};});
+}
+
+async function loadMonth(key){
+  if(loadedMonths.has(key)){activeMonth=key;filterByMonth(key);return;}
+  setLoading(50,key+" 로딩...");
+  try{
+    var res=await fetch("./data/monthly_"+key+".csv");
+    if(res.ok){
+      var text=await res.text();var rows=parseCSV(text);
+      rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==key;});
+      rawData=rawData.concat(rows);loadedMonths.add(key);activeMonth=key;
+      var m=availableMonths.find(function(m){return m.key===key;});
+      setLoading(100,"");showAlert("✅ "+(m?m.label:key)+" — "+rows.length.toLocaleString()+"건","success");
+      filterByMonth(key);return;
+    }
+  }catch(e){}
+  setLoading(60,"전체 CSV 로딩...");
+  try{
+    var res=await fetch("./data/prism_data.csv");
+    if(res.ok){
+      var text=await res.text();rawData=parseCSV(text);
+      detectMonths();buildMonthButtons();availableMonths.forEach(function(m){loadedMonths.add(m.key);});
+      activeMonth=key;setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");filterByMonth(key);
+    }
+  }catch(e){setLoading(100,"오류");showAlert("❌ 데이터 로드 실패","error");}
+}
+
+async function loadAllMonths(){
+  var unloaded=availableMonths.filter(function(m){return!loadedMonths.has(m.key);});
+  for(var i=0;i<unloaded.length;i++){
+    var m=unloaded[i];setLoading(Math.round((i/Math.max(unloaded.length,1))*80)+10,m.label+" 로딩...");
+    try{
+      var res=await fetch("./data/monthly_"+m.key+".csv");
+      if(res.ok){
+        var text=await res.text();var rows=parseCSV(text);
+        rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==m.key;});
+        rawData=rawData.concat(rows);loadedMonths.add(m.key);
+      }
+    }catch(e){}
+  }
+  setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");
+}
+
+function buildMonthButtons(){
+  var c=document.getElementById("monthBtns");c.innerHTML="";
+  var allBtn=document.createElement("button");
+  allBtn.className="btn"+(activeMonth==="all"?" active":"");allBtn.textContent="전체";
+  allBtn.onclick=async function(){setMonthActive(allBtn);activeMonth="all";await loadAllMonths();applyFilter();};
+  c.appendChild(allBtn);
+  availableMonths.forEach(function(m){
+    var btn=document.createElement("button");
+    btn.className="btn"+(activeMonth===m.key?" active":"");btn.textContent=m.label;
+    btn.onclick=async function(){setMonthActive(btn);await loadMonth(m.key);};
+    c.appendChild(btn);
   });
 }
+function setMonthActive(b){document.querySelectorAll("#monthBtns .btn").forEach(function(x){x.classList.remove("active");});b.classList.add("active");}
 
-// ── 파일 로드 ─────────────────────────────
-function loadFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    rawData = parseCSV(e.target.result);
-    showAlert(`✅ "${file.name}" 로드 완료 — ${rawData.length}건`, 'success');
-    initDashboard();
-  };
-  reader.readAsText(file, 'UTF-8');
-}
-
-// ── 샘플 데이터 로드 ──────────────────────
-function loadSampleData() {
-  fetch('./data/prism_data.csv')
-    .then(r => r.text())
-    .then(text => {
-      rawData = parseCSV(text);
-      showAlert(`🧪 샘플 데이터 로드 완료 — ${rawData.length}건`, 'info');
-      initDashboard();
-    })
-    .catch(() => {
-      // fetch 실패 시 인라인 샘플
-      // PLISM 3.0 컬럼: 수출입구분,모선명,항차,출발일자,MBL번호,화주명,컨테이너번호,컨테이너규격,컨테이너코드,풀엠티구분,TEU,수량,MRN,수집일시
-      const inline = `수출입구분,모선명,항차,출발일자,MBL번호,화주명,컨테이너번호,컨테이너규격,컨테이너코드,풀엠티구분,TEU,수량,MRN,수집일시
-수출,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E001,현대자동차㈜,HDMU1234567,40',42GP,F,2,1,KMTPE2609001001,2026-09-01 08:00:00
-수출,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E002,LG화학㈜,HESU2345678,20',22GP,F,1,1,KMTPE2609001002,2026-09-01 08:00:00
-수출,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E003,삼성SDI㈜,MSDU3456789,40',42GP,F,2,1,KMTPE2609001003,2026-09-01 08:00:00
-수출,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E004,울산석유화학㈜,HDMU4567890,20',22GP,F,1,1,KMTPE2609001004,2026-09-01 08:00:00
-수출,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E005,SK이노베이션㈜,HESU5678901,40',45GP,F,2,1,KMTPE2609001005,2026-09-01 08:00:00
-수입,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E101,현대중공업㈜,MSDU7890123,20',22GP,F,1,1,KMTPA2609001001,2026-09-01 08:00:00
-수입,HEUNG-A HOCHIMINH,026E,2026-09-01,HAHO026E102,현대중공업㈜,HDMU8901234,40',42GP,E,2,1,KMTPA2609001002,2026-09-01 08:00:00
-수출,HEUNG-A JAKARTA,027E,2026-09-02,HAJA027E001,현대자동차㈜,HESU9012345,40',42GP,F,2,1,KMTPE2609002001,2026-09-02 08:00:00
-수출,HEUNG-A JAKARTA,027E,2026-09-02,HAJA027E002,포스코㈜,HDMU1234560,20',22GP,F,1,1,KMTPE2609002002,2026-09-02 08:00:00
-수출,HEUNG-A JAKARTA,027E,2026-09-02,HAJA027E003,현대케미칼㈜,HESU2345670,40',42GP,F,2,1,KMTPE2609002003,2026-09-02 08:00:00
-수입,HEUNG-A JAKARTA,027E,2026-09-02,HAJA027E101,포스코㈜,HESU5678900,40',42GP,E,2,1,KMTPA2609002001,2026-09-02 08:00:00
-수출,HEUNG-A SINGAPORE,028E,2026-09-03,HASI028E001,현대자동차㈜,MSDU6789000,40',45GP,F,2,1,KMTPE2609003001,2026-09-03 08:00:00
-수출,HEUNG-A SINGAPORE,028E,2026-09-03,HASI028E002,삼성SDI㈜,HDMU7890000,20',22GP,F,1,1,KMTPE2609003002,2026-09-03 08:00:00
-수출,HEUNG-A SINGAPORE,028E,2026-09-03,HASI028E003,LG화학㈜,HESU8900000,40',42GP,F,2,1,KMTPE2609003003,2026-09-03 08:00:00
-수입,HEUNG-A SINGAPORE,028E,2026-09-03,HASI028E101,현대자동차㈜,HESU0000123,20',22GP,E,1,1,KMTPA2609003001,2026-09-03 08:00:00
-수출,HEUNG-A TOKYO,029E,2026-09-04,HATO029E001,현대자동차㈜,HDMU0012345,40',42GP,F,2,1,KMTPE2609004001,2026-09-04 08:00:00
-수출,HEUNG-A TOKYO,029E,2026-09-04,HATO029E002,포스코㈜,HESU0123456,20',22GP,F,1,1,KMTPE2609004002,2026-09-04 08:00:00
-수출,HEUNG-A TOKYO,029E,2026-09-04,HATO029E003,현대케미칼㈜,MSDU1234501,40',42GP,F,2,1,KMTPE2609004003,2026-09-04 08:00:00
-수입,HEUNG-A TOKYO,029E,2026-09-04,HATO029E101,삼성SDI㈜,MSDU4567804,20',22GP,E,1,1,KMTPA2609004001,2026-09-04 08:00:00
-수출,HEUNG-A SHANGHAI,030E,2026-09-05,HASH030E001,현대자동차㈜,HDMU5678905,40',42GP,F,2,1,KMTPE2609005001,2026-09-05 08:00:00
-수출,HEUNG-A SHANGHAI,030E,2026-09-05,HASH030E002,LG화학㈜,HESU6789006,20',22GP,F,1,1,KMTPE2609005002,2026-09-05 08:00:00
-수출,HEUNG-A SHANGHAI,030E,2026-09-05,HASH030E003,포스코㈜,MSDU7890107,40',42GP,F,2,1,KMTPE2609005003,2026-09-05 08:00:00
-수입,HEUNG-A SHANGHAI,030E,2026-09-05,HASH030E101,현대자동차㈜,HDMU1234511,40',45GP,E,2,1,KMTPA2609005001,2026-09-05 08:00:00`;
-      
-      rawData = parseCSV(inline);
-      showAlert(`🧪 샘플 데이터 로드 완료 — ${rawData.length}건`, 'info');
-      initDashboard();
-    });
-}
-
-// ════════════════════════════════════════════
-// 대시보드 초기화
-// ════════════════════════════════════════════
-function initDashboard() {
-  document.getElementById('uploadHint').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('lastUpdate').innerHTML =
-    `마지막 업데이트<br>${new Date().toLocaleString('ko-KR')}`;
-
-  // 모선 필터 옵션 채우기
-  const vessels = [...new Set(rawData.map(r => r['모선명']))].sort();
-  const sel = document.getElementById('filterVessel');
-  sel.innerHTML = '<option value="all">전체</option>';
-  vessels.forEach(v => sel.innerHTML += `<option value="${v}">${v}</option>`);
-
-  // 기간 초기값
-  const dates = rawData.map(r => r['출발일자']).filter(Boolean).sort();
-  if (dates.length) {
-    document.getElementById('dateFrom').value = dates[0].replace(/\./g,'-');
-    document.getElementById('dateTo').value = dates[dates.length-1].replace(/\./g,'-');
+function filterByMonth(key){
+  if(key!=="all"){
+    var yr=key.slice(0,4),mo=key.slice(4,6);
+    var last=new Date(parseInt(yr),parseInt(mo),0).getDate();
+    document.getElementById("dateFrom").value=yr+"-"+mo+"-01";
+    document.getElementById("dateTo").value=yr+"-"+mo+"-"+String(last).padStart(2,"0");
   }
-
-  applyFilter();
+  initDashboard();applyFilter();
 }
 
-// ── 필터 적용 ─────────────────────────────
-function applyFilter() {
-  const dir = document.getElementById('filterDir').value;
-  const vessel = document.getElementById('filterVessel').value;
-  const from = document.getElementById('dateFrom').value.replace(/-/g,'');
-  const to   = document.getElementById('dateTo').value.replace(/-/g,'');
+function loadFile(ev){
+  var f=ev.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    var rows=parseCSV(e.target.result);rawData=rawData.concat(rows);
+    detectMonths();buildMonthButtons();
+    showAlert("✅ \""+f.name+"\" — "+rows.length.toLocaleString()+"건 추가","success");
+    initDashboard();applyFilter();
+  };r.readAsText(f,"UTF-8");
+}
 
-  filteredData = rawData.filter(r => {
-    const d = (r['출발일자'] || '').replace(/\./g,'').replace(/-/g,'').substring(0,8);
-    if (from && d && d < from) return false;
-    if (to   && d && d > to)   return false;
-    if (dir !== 'all' && r['수출입구분'] !== dir) return false;
-    if (vessel !== 'all' && r['모선명'] !== vessel) return false;
+function onDateChange(){
+  document.querySelectorAll("#monthBtns .btn").forEach(function(b){b.classList.remove("active");});
+  activeMonth="custom";applyFilter();
+}
+
+function setDir(dir,btn){
+  activeDir=dir;
+  document.querySelectorAll("#controls .btn[id^=btn]").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");applyFilter();
+}
+
+function initDashboard(){
+  document.getElementById("uploadHint").style.display="none";
+  document.getElementById("dash").style.display="grid";
+  var vessels=[...new Set(rawData.map(function(r){return r["모선명"];}))].sort();
+  var sel=document.getElementById("filterVessel");var cur=sel.value;
+  sel.innerHTML="<option value=\"all\">전체</option>";
+  vessels.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});
+  var dfrom=document.getElementById("dateFrom"),dto=document.getElementById("dateTo");
+  if(!dfrom.value){
+    var dates=rawData.map(function(r){return r["출발일자"];}).filter(Boolean).sort();
+    if(dates.length){dfrom.value=dates[0].replace(/\./g,"-");dto.value=dates[dates.length-1].replace(/\./g,"-");}
+  }
+  var now=new Date().toLocaleString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  document.getElementById("statusBar").textContent="총 "+rawData.length.toLocaleString()+"건 | "+now;
+}
+
+function applyFilter(){
+  var from=(document.getElementById("dateFrom").value||"").replace(/-/g,"");
+  var to=(document.getElementById("dateTo").value||"").replace(/-/g,"");
+  var vessel=document.getElementById("filterVessel").value;
+  filteredData=rawData.filter(function(r){
+    var d=(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,8);
+    if(from&&d&&d<from)return false;if(to&&d&&d>to)return false;
+    if(activeDir!=="all"&&r["수출입구분"]!==activeDir)return false;
+    if(vessel!=="all"&&r["모선명"]!==vessel)return false;
     return true;
   });
-
-  updateKPIs();
-  updateCharts();
-  updateShipperTable(shipperTab);
-  updateVesselList();
+  updateKPIs();updateCharts();updateShipperTable(shipperTab);
 }
 
-// ════════════════════════════════════════════
-// KPI 업데이트
-// ════════════════════════════════════════════
-function teu(r) { return parseFloat(r['TEU']||r['teu']||0); }
-function updateKPIs() {
-  const d = filteredData;
-  const total   = d.reduce((s,r) => s + teu(r), 0);
-  const exports = d.filter(r=>r['수출입구분']==='수출').reduce((s,r)=>s+teu(r),0);
-  const imports = d.filter(r=>r['수출입구분']==='수입').reduce((s,r)=>s+teu(r),0);
-  const vessels = new Set(d.map(r=>r['모선명'])).size;
-  const shippers= new Set(d.map(r=>r['화주명'])).size;
-  const full    = d.filter(r=>(r['풀엠티구분']==='FULL'||r['풀엠티구분']==='F')).reduce((s,r)=>s+teu(r),0);
-  const fullRate= total > 0 ? (full/total*100).toFixed(1) : 0;
-
-  document.getElementById('kpiTotalTeu').textContent  = total.toLocaleString();
-  document.getElementById('kpiExportTeu').textContent = exports.toLocaleString();
-  document.getElementById('kpiImportTeu').textContent = imports.toLocaleString();
-  document.getElementById('kpiVessels').textContent   = vessels;
-  document.getElementById('kpiShippers').textContent  = shippers;
-  document.getElementById('kpiFullRate').textContent  = fullRate;
-
-  document.getElementById('kpiTotalTeuSub').textContent  = `${d.length}건`;
-  document.getElementById('kpiExportSub').textContent    = `전체의 ${total>0?(exports/total*100).toFixed(1):0}%`;
-  document.getElementById('kpiImportSub').textContent    = `전체의 ${total>0?(imports/total*100).toFixed(1):0}%`;
-  document.getElementById('kpiVesselsSub').textContent   = `항차 수: ${new Set(d.map(r=>r['모선명']+r['항차'])).size}`;
-  document.getElementById('kpiFullRateSub').textContent  = `EMPTY: ${(100-fullRate).toFixed(1)}%`;
+function teu(r){return parseFloat(r["TEU"]||r["teu"]||0)||0;}
+function updateKPIs(){
+  var d=filteredData;
+  var total=d.reduce(function(s,r){return s+teu(r);},0);
+  var exp=d.filter(function(r){return r["수출입구분"]==="수출";}).reduce(function(s,r){return s+teu(r);},0);
+  var imp=d.filter(function(r){return r["수출입구분"]==="수입";}).reduce(function(s,r){return s+teu(r);},0);
+  var vCount=new Set(d.map(function(r){return r["모선명"];})).size;
+  var sCount=new Set(d.map(function(r){return r["화주명"];})).size;
+  var full=d.filter(function(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}).reduce(function(s,r){return s+teu(r);},0);
+  var fRate=total>0?(full/total*100).toFixed(1):0;
+  document.getElementById("kpiTotalTeu").textContent=total.toLocaleString();
+  document.getElementById("kpiExpTeu").textContent=exp.toLocaleString();
+  document.getElementById("kpiImpTeu").textContent=imp.toLocaleString();
+  document.getElementById("kpiVessels").textContent=vCount;
+  document.getElementById("kpiShippers").textContent=sCount;
+  document.getElementById("kpiFullRate").textContent=fRate;
+  document.getElementById("kpiTotalSub").textContent="TEU ("+d.length.toLocaleString()+"건)";
+  document.getElementById("kpiExpSub").textContent=total>0?(exp/total*100).toFixed(1)+"%":"0%";
+  document.getElementById("kpiImpSub").textContent=total>0?(imp/total*100).toFixed(1)+"%":"0%";
+  document.getElementById("kpiVesselsSub").textContent="항차 "+new Set(d.map(function(r){return r["모선명"]+"|"+r["항차"];})).size+"회";
+  document.getElementById("kpiFullSub").textContent="EMPTY: "+(100-fRate).toFixed(1)+"%";
 }
 
-// ════════════════════════════════════════════
-// 차트 업데이트
-// ════════════════════════════════════════════
-const COLORS = ['#2196F3','#e84c4c','#2ea44f','#f59e0b','#7c3aed','#0891b2',
-                '#ec4899','#10b981','#f97316','#6366f1','#84cc16','#e11d48'];
+var DC={muted:"#94a3b8",border:"#334155"};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+var baseOpts={responsive:true,maintainAspectRatio:false,animation:{duration:150},plugins:{legend:{labels:{font:{size:10},color:"#94a3b8"}}}};
 
-function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function updateCharts(){updateDailyChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();}
 
-function updateCharts() {
-  updateDailyChart();
-  updateExpImpChart();
-  updateVesselChart();
-  updateFullEmptyChart();
-  updateSizeChart();
-}
-
-// 일별 추이 (수출/수입)
-function updateDailyChart() {
-  destroyChart('daily');
-  const byDate = {};
-  filteredData.forEach(r => {
-    const d = r['출발일자'];
-    if (!byDate[d]) byDate[d] = {수출:0, 수입:0};
-    byDate[d][r['수출입구분']] = (byDate[d][r['수출입구분']]||0) + teu(r);
+function updateDailyChart(){
+  destroyChart("daily");
+  var byDate={};
+  filteredData.forEach(function(r){
+    var d=r["출발일자"];if(!d)return;
+    if(!byDate[d])byDate[d]={수출:0,수입:0};
+    byDate[d][r["수출입구분"]]=(byDate[d][r["수출입구분"]]||0)+teu(r);
   });
-  const labels = Object.keys(byDate).sort();
-  charts['daily'] = new Chart(document.getElementById('chartDaily'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'수출', data: labels.map(d=>byDate[d].수출||0),
-          backgroundColor:'rgba(232,76,76,.85)', stack:'s' },
-        { label:'수입', data: labels.map(d=>byDate[d].수입||0),
-          backgroundColor:'rgba(33,150,243,.75)', stack:'s' },
-      ]
-    },
-    options: {
-      responsive: true, interaction: { mode:'index' },
-      plugins: { legend: { position:'top', labels:{font:{size:11}} } },
-      scales: {
-        x: { stacked:true, ticks:{font:{size:10}} },
-        y: { stacked:true, title:{display:true,text:'TEU',font:{size:11}} }
-      }
-    }
+  var labels=Object.keys(byDate).sort();
+  charts["daily"]=new Chart(document.getElementById("chartDaily"),{
+    type:"bar",
+    data:{labels:labels,datasets:[
+      {label:"수출",data:labels.map(function(d){return byDate[d].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+      {label:"수입",data:labels.map(function(d){return byDate[d].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    ]},
+    options:Object.assign({},baseOpts,{interaction:{mode:"index"},scales:{
+      x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8",maxTicksLimit:20},grid:{color:"rgba(51,65,85,.3)"}},
+      y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",font:{size:9},color:"#94a3b8"}}
+    }})
   });
 }
 
-// 수출/수입 도넛
-function updateExpImpChart() {
-  destroyChart('expimp');
-  const exp = filteredData.filter(r=>r['수출입구분']==='수출').reduce((s,r)=>s+teu(r),0);
-  const imp = filteredData.filter(r=>r['수출입구분']==='수입').reduce((s,r)=>s+teu(r),0);
-  charts['expimp'] = new Chart(document.getElementById('chartExpImp'), {
-    type: 'doughnut',
-    data: {
-      labels: ['수출','수입'],
-      datasets: [{ data:[exp,imp], backgroundColor:['#e84c4c','#2196F3'],
-        borderWidth:2, borderColor:'#fff' }]
-    },
-    options: {
-      responsive:true, cutout:'62%',
-      plugins: {
-        legend:{position:'bottom',labels:{font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()} TEU`}}
-      }
-    }
+function makeDoughnut(id,canvasId,labels,data,colors){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(canvasId),{
+    type:"doughnut",
+    data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderWidth:2,borderColor:"#1e293b"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:150},cutout:"60%",plugins:{
+      legend:{position:"bottom",labels:{font:{size:10},color:"#94a3b8",padding:6,boxWidth:10}},
+      tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}
+    }}
   });
 }
 
-// 모선별 바 차트
-function updateVesselChart() {
-  destroyChart('vessel');
-  const byVessel = {};
-  filteredData.forEach(r => {
-    const v = r['모선명'];
-    if (!byVessel[v]) byVessel[v] = {수출:0,수입:0};
-    byVessel[v][r['수출입구분']] = (byVessel[v][r['수출입구분']]||0) + teu(r);
+function updateExpImpChart(){
+  var exp=filteredData.filter(function(r){return r["수출입구분"]==="수출";}).reduce(function(s,r){return s+teu(r);},0);
+  var imp=filteredData.filter(function(r){return r["수출입구분"]==="수입";}).reduce(function(s,r){return s+teu(r);},0);
+  makeDoughnut("expimp","chartExpimp",["수출","수입"],[exp,imp],["#e84c4c","#2196F3"]);
+}
+
+function updateFullEmptyChart(){
+  var full=filteredData.filter(function(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}).reduce(function(s,r){return s+teu(r);},0);
+  var empty=filteredData.filter(function(r){return r["풀엠티구분"]==="EMPTY"||r["풀엠티구분"]==="E";}).reduce(function(s,r){return s+teu(r);},0);
+  makeDoughnut("fullempty","chartFullempty",["FULL","EMPTY"],[full,empty],["#2ea44f","#475569"]);
+}
+
+function updateVesselChart(){
+  destroyChart("vessel");
+  var byV={};
+  filteredData.forEach(function(r){
+    var v=r["모선명"];if(!byV[v])byV[v]={수출:0,수입:0};
+    byV[v][r["수출입구분"]]=(byV[v][r["수출입구분"]]||0)+teu(r);
   });
-  const vessels = Object.keys(byVessel).sort((a,b)=>{
-    const ta = byVessel[a].수출+byVessel[a].수입;
-    const tb = byVessel[b].수출+byVessel[b].수입;
-    return tb-ta;
-  });
-  charts['vessel'] = new Chart(document.getElementById('chartVessel'), {
-    type: 'bar',
-    data: {
-      labels: vessels,
-      datasets: [
-        { label:'수출', data:vessels.map(v=>byVessel[v].수출||0),
-          backgroundColor:'rgba(232,76,76,.85)', stack:'s' },
-        { label:'수입', data:vessels.map(v=>byVessel[v].수입||0),
-          backgroundColor:'rgba(33,150,243,.75)', stack:'s' }
-      ]
-    },
-    options: {
-      indexAxis:'y', responsive:true, interaction:{mode:'index'},
-      plugins:{ legend:{position:'top',labels:{font:{size:10}}} },
-      scales:{
-        x:{stacked:true,title:{display:true,text:'TEU',font:{size:10}}},
-        y:{stacked:true,ticks:{font:{size:10}}}
-      }
-    }
+  var vs=Object.keys(byV).sort(function(a,b){return(byV[b].수출+byV[b].수입)-(byV[a].수출+byV[a].수입);}).slice(0,15);
+  charts["vessel"]=new Chart(document.getElementById("chartVessel"),{
+    type:"bar",
+    data:{labels:vs,datasets:[
+      {label:"수출",data:vs.map(function(v){return byV[v].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+      {label:"수입",data:vs.map(function(v){return byV[v].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    ]},
+    options:Object.assign({},baseOpts,{indexAxis:"y",scales:{
+      x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"}},
+      y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"}}
+    }})
   });
 }
 
-// Full/Empty 도넛
-function updateFullEmptyChart() {
-  destroyChart('fullEmpty');
-  const full  = filteredData.filter(r=>(r['풀엠티구분']==='FULL'||r['풀엠티구분']==='F')).reduce((s,r)=>s+teu(r),0);
-  const empty = filteredData.filter(r=>(r['풀엠티구분']==='EMPTY'||r['풀엠티구분']==='E')).reduce((s,r)=>s+teu(r),0);
-  charts['fullEmpty'] = new Chart(document.getElementById('chartFullEmpty'), {
-    type: 'doughnut',
-    data: {
-      labels: ['FULL','EMPTY'],
-      datasets: [{ data:[full,empty],
-        backgroundColor:['#2ea44f','#94a3b8'], borderWidth:2, borderColor:'#fff' }]
-    },
-    options: {
-      responsive:true, cutout:'62%',
-      plugins:{
-        legend:{position:'bottom',labels:{font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()} TEU`}}
-      }
-    }
+function updateSizeChart(){
+  var s20=filteredData.filter(function(r){return String(r["컨테이너규격"]).includes("20");}).reduce(function(s,r){return s+teu(r);},0);
+  var s40=filteredData.filter(function(r){return String(r["컨테이너규격"]).includes("40");}).reduce(function(s,r){return s+teu(r);},0);
+  var oth=filteredData.filter(function(r){return!String(r["컨테이너규격"]).includes("20")&&!String(r["컨테이너규격"]).includes("40");}).reduce(function(s,r){return s+teu(r);},0);
+  makeDoughnut("size","chartSize",["20'","40'","기타"],[s20,s40,oth],["#f59e0b","#7c3aed","#475569"]);
+}
+
+function setShipperTab(tab,btn){
+  shipperTab=tab;
+  document.querySelectorAll(".tab-btn").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");updateShipperTable(tab);
+}
+
+function updateShipperTable(tab){
+  var data=tab==="all"?filteredData:filteredData.filter(function(r){return r["수출입구분"]===tab;});
+  var byS={};
+  data.forEach(function(r){
+    var s=r["화주명"]||"미상";
+    if(!byS[s])byS[s]={total:0,exp:0,imp:0,full:0};
+    var t=teu(r);byS[s].total+=t;
+    if(r["수출입구분"]==="수출")byS[s].exp+=t;else byS[s].imp+=t;
+    if(r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F")byS[s].full+=t;
+  });
+  var rows=Object.entries(byS).sort(function(a,b){return b[1].total-a[1].total;});
+  var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
+  document.getElementById("shipperTableBody").innerHTML=rows.map(function([name,v],i){
+    var rank=i+1;
+    var badge=rank<=3?'<span class="rank-badge rank-'+rank+'">'+rank+"</span>":'<span class="rank-badge rank-n">'+rank+"</span>";
+    return"<tr><td title=\""+name+"\">"+badge+name+"</td><td><strong>"+v.total.toLocaleString()+"</strong></td><td style=\"color:var(--exp)\">"+v.exp.toLocaleString()+"</td><td style=\"color:var(--imp)\">"+v.imp.toLocaleString()+"</td><td style=\"color:var(--green)\">"+v.full.toLocaleString()+"</td><td>"+(allT>0?(v.total/allT*100).toFixed(1):0)+"%</td></tr>";
+  }).join("");
+}
+
+var modalChart=null;
+function openModal(key,title){
+  document.getElementById("modalTitle").textContent=title;
+  document.getElementById("modalBody").innerHTML='<canvas id="modalCanvas" style="width:100%;height:100%"></canvas>';
+  document.getElementById("modal").style.display="block";
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  var src=charts[key];if(!src)return;
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  var srcOpts=src.config.options||{};
+  var srcPlugins=srcOpts.plugins||{};
+  modalChart=new Chart(ctx,{
+    type:src.config.type,
+    data:JSON.parse(JSON.stringify(src.config.data)),
+    options:Object.assign({},srcOpts,{maintainAspectRatio:false,animation:{duration:0},
+      plugins:Object.assign({},srcPlugins,{legend:Object.assign({},srcPlugins.legend||{},{labels:{font:{size:13},color:"#94a3b8"}})})})
   });
 }
 
-// 20'/40' 사이즈 차트
-function updateSizeChart() {
-  destroyChart('size');
-  const s20 = filteredData.filter(r=>String(r['컨테이너규격']).includes('20')).reduce((s,r)=>s+teu(r),0);
-  const s40 = filteredData.filter(r=>String(r['컨테이너규격']).includes('40')).reduce((s,r)=>s+teu(r),0);
-  charts['size'] = new Chart(document.getElementById('chartSize'), {
-    type: 'doughnut',
-    data: {
-      labels: ["20'","40'"],
-      datasets: [{ data:[s20,s40],
-        backgroundColor:['#f59e0b','#7c3aed'], borderWidth:2, borderColor:'#fff' }]
-    },
-    options: {
-      responsive:true, cutout:'62%',
-      plugins:{
-        legend:{position:'bottom',labels:{font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()} TEU`}}
-      }
-    }
+function openShipperModal(){
+  document.getElementById("modalTitle").textContent="화주별 물동량 상세";
+  var data=shipperTab==="all"?filteredData:filteredData.filter(function(r){return r["수출입구분"]===shipperTab;});
+  var byS={};
+  data.forEach(function(r){
+    var s=r["화주명"]||"미상";
+    if(!byS[s])byS[s]={total:0,exp:0,imp:0,full:0,empty:0,cnt:0};
+    var t=teu(r);byS[s].total+=t;byS[s].cnt++;
+    if(r["수출입구분"]==="수출")byS[s].exp+=t;else byS[s].imp+=t;
+    if(r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F")byS[s].full+=t;else byS[s].empty+=t;
   });
+  var rows=Object.entries(byS).sort(function(a,b){return b[1].total-a[1].total;});
+  var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
+  var hdrStyle="padding:8px;text-align:";
+  document.getElementById("modalBody").innerHTML='<div style="height:100%;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="position:sticky;top:0;background:#263348"><th style="'+hdrStyle+'left">순위</th><th style="'+hdrStyle+'left">화주명</th><th style="'+hdrStyle+'right">TEU</th><th style="'+hdrStyle+'right;color:#e84c4c">수출</th><th style="'+hdrStyle+'right;color:#2196F3">수입</th><th style="'+hdrStyle+'right;color:#2ea44f">FULL</th><th style="'+hdrStyle+'right;color:#475569">EMPTY</th><th style="'+hdrStyle+'right">건수</th><th style="'+hdrStyle+'right">점유율</th></tr></thead><tbody>'+rows.map(function([name,v],i){return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--muted)">'+(i+1)+'</td><td style="padding:6px 8px">'+name+'</td><td style="padding:6px 8px;text-align:right;font-weight:700">'+v.total.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#e84c4c">'+v.exp.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#2196F3">'+v.imp.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#2ea44f">'+v.full.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#475569">'+v.empty.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:var(--muted)">'+v.cnt+'</td><td style="padding:6px 8px;text-align:right">'+(allT>0?(v.total/allT*100).toFixed(1):0)+'%</td></tr>';}).join("")+'</tbody></table></div>';
+  document.getElementById("modal").style.display="block";
 }
 
-// ════════════════════════════════════════════
-// 화주별 테이블
-// ════════════════════════════════════════════
-function setShipperTab(tab, btn) {
-  shipperTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  updateShipperTable(tab);
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+  if(modalChart){modalChart.destroy();modalChart=null;}
+}
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal();});
+
+function exportCSV(){
+  if(!filteredData.length){showAlert("데이터가 없습니다.","error");return;}
+  var h=Object.keys(filteredData[0]);
+  var csv=[h.join(",")].concat(filteredData.map(function(r){return h.map(function(k){return"\""+((r[k]||"").toString().replace(/"/g,"\"\""))+"\"";}).join(",");})).join("\n");
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));
+  a.download="울산항_물동량_"+new Date().toISOString().slice(0,10)+".csv";a.click();
 }
 
-function updateShipperTable(tab) {
-  const data = tab === 'all' ? filteredData
-    : filteredData.filter(r => r['수출입구분'] === tab);
-
-  const byShipper = {};
-  data.forEach(r => {
-    const s = r['화주명'] || '미상';
-    if (!byShipper[s]) byShipper[s] = {total:0, exp:0, imp:0, full:0, empty:0};
-    const t = teu(r);
-    byShipper[s].total += t;
-    if (r['수출입구분']==='수출') byShipper[s].exp += t;
-    else                          byShipper[s].imp += t;
-    if ((r['풀엠티구분']==='FULL'||r['풀엠티구분']==='F')) byShipper[s].full  += t;
-    else                          byShipper[s].empty += t;
-  });
-
-  const rows = Object.entries(byShipper).sort((a,b)=>b[1].total-a[1].total);
-  const maxTeu = rows.length ? rows[0][1].total : 1;
-
-  const tbody = document.getElementById('shipperTableBody');
-  tbody.innerHTML = rows.map(([name, v], i) => {
-    const rank = i+1;
-    const badge = rank<=3
-      ? `<span class="rank-badge rank-${rank}">${rank}</span>`
-      : `<span class="rank-badge rank-n">${rank}</span>`;
-    const pct = (v.total/maxTeu*100).toFixed(0);
-    return `<tr>
-      <td>${badge}${name}<div class="bar-mini"><div class="bar-fill" style="width:${pct}%"></div></div></td>
-      <td><strong>${v.total.toLocaleString()}</strong></td>
-      <td style="color:#e84c4c">${v.exp.toLocaleString()}</td>
-      <td style="color:#2196F3">${v.imp.toLocaleString()}</td>
-      <td style="color:#2ea44f">${v.full.toLocaleString()}</td>
-      <td style="color:#94a3b8">${v.empty.toLocaleString()}</td>
-      <td style="color:var(--muted)">${(v.total/filteredData.reduce((s,r2)=>s+teu(r2),0)*100).toFixed(1)}%</td>
-    </tr>`;
-  }).join('');
+var aTimer=null;
+function showAlert(msg,type){
+  type=type||"info";
+  var el=document.getElementById("alertBar");
+  el.className="alert alert-"+type;el.textContent=msg;el.style.display="flex";
+  clearTimeout(aTimer);aTimer=setTimeout(function(){el.style.display="none";},5000);
 }
 
-// ════════════════════════════════════════════
-// 모선 목록
-// ════════════════════════════════════════════
-function updateVesselList() {
-  const byVessel = {};
-  filteredData.forEach(r => {
-    const v = r['모선명'];
-    if (!byVessel[v]) byVessel[v] = { teu:0, voyages: new Set(), exp:0, imp:0 };
-    byVessel[v].teu += teu(r);
-    byVessel[v].voyages.add(r['항차']);
-    if (r['수출입구분']==='수출') byVessel[v].exp += teu(r);
-    else byVessel[v].imp += teu(r);
-  });
-
-  const vessels = Object.entries(byVessel).sort((a,b)=>b[1].teu-a[1].teu);
-  const COLORS = ['#2196F3','#e84c4c','#2ea44f','#f59e0b','#7c3aed','#0891b2'];
-
-  document.getElementById('vesselList').innerHTML = vessels.map(([name,v],i) => `
-    <div class="vessel-item" style="border-left-color:${COLORS[i%6]}">
-      <div style="flex:1">
-        <div class="vessel-name">${name}</div>
-        <div class="vessel-meta">항차: ${[...v.voyages].join(', ')} &nbsp;|&nbsp;
-          수출 ${v.exp}T / 수입 ${v.imp}T</div>
-      </div>
-      <div class="vessel-teu">${v.teu.toLocaleString()}<span style="font-size:12px;font-weight:400;color:var(--muted)">TEU</span></div>
-    </div>
-  `).join('');
-}
-
-// ════════════════════════════════════════════
-// 유틸리티
-// ════════════════════════════════════════════
-function showAlert(msg, type='info') {
-  const el = document.getElementById('alertBar');
-  el.className = `alert alert-${type}`;
-  el.textContent = msg;
-  el.style.display = 'flex';
-  setTimeout(() => el.style.display='none', 5000);
-}
-
-function exportCSV() {
-  if (!filteredData.length) { alert('데이터가 없습니다.'); return; }
-  const headers = Object.keys(filteredData[0]);
-  const csv = [headers.join(','),
-    ...filteredData.map(r => headers.map(h =>
-      `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))
-  ].join('\n');
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `울산항_물동량_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
-
-// 날짜 기본값 (오늘 기준)
-const today = new Date();
-const m1ago = new Date(today); m1ago.setMonth(m1ago.getMonth()-1);
-document.getElementById('dateFrom').value = m1ago.toISOString().slice(0,10);
-document.getElementById('dateTo').value   = today.toISOString().slice(0,10);
-
-// ── 페이지 로드 시 자동으로 prism_data.csv 불러오기
-// (스크립트가 </body> 직전에 있으므로 DOM이 이미 준비됨 — 직접 호출)
-loadSampleData();
+init();
 </script>
 </body>
 </html>

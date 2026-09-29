@@ -20,3 +20,23 @@ desktop.ini
 # IDE
 .vscode/
 .idea/
+
+# 대용량 원본 데이터 (월별 CSV만 올림)
+data/prism_data.csv
+
+# 디버그 로그 및 스크린샷
+data/*.log
+data/*.png
+data/run_marker.txt
+data/test_write_*.txt
+logs/
+browser_profile/
+*.txt
+Claude outputs/
+
+# 임시 스크립트
+push_now.bat
+setup_github_auth.bat
+fetch_run_output*.txt
+fetch_setup_output.txt
+playwright_*.txt

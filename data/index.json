@@ -1,0 +1,27 @@
+{
+  "months": {
+    "202608": {
+      "rows": 3485,
+      "teu": 5396,
+      "exp_teu": 2972,
+      "imp_teu": 2424,
+      "vessels": 21
+    },
+    "202609": {
+      "rows": 58523,
+      "teu": 88592,
+      "exp_teu": 42175,
+      "imp_teu": 46417,
+      "vessels": 107
+    },
+    "202610": {
+      "rows": 996,
+      "teu": 1398,
+      "exp_teu": 1398,
+      "imp_teu": 0,
+      "vessels": 3
+    }
+  },
+  "total_rows": 63004,
+  "total_teu": 95386
+}
