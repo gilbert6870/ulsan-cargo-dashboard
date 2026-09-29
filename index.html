@@ -129,9 +129,6 @@ tr:hover td{background:var(--card2)}
   <button class="btn exp-btn" id="btnExp" onclick="setDir('수출',this)">&#xC218;&#xCD9C;</button>
   <button class="btn imp-btn" id="btnImp" onclick="setDir('수입',this)">&#xC218;&#xC785;</button>
   <div class="divider"></div>
-  <span class="ctrl-label">&#xBAA8;&#xC120;</span>
-  <select id="filterVessel" onchange="applyFilter()"><option value="all">&#xC804;&#xCCB4;</option></select>
-  <div class="divider"></div>
   <span class="ctrl-label">선사</span>
   <select id="filterCarrier" onchange="onCarrierChange()"><option value="all">전체</option></select>
 </div>
@@ -206,7 +203,7 @@ tr:hover td{background:var(--card2)}
 </div>
 <script>
 var rawData=[],filteredData=[],charts={},shipperTab="all";
-var activeDir="all",activeMonth="all",dailyTab="expimp";
+var activeDir="all",activeMonth="all",dailyTab="expimp",selectedMonths=new Set();
 var availableMonths=[],loadedMonths=new Set(),monthlyIndex={},monthlyFE={};
 
 function parseCSV(text){
@@ -297,26 +294,26 @@ async function loadAllMonths(){
 function buildMonthButtons(){
   var c=document.getElementById("monthBtns");c.innerHTML="";
   var allBtn=document.createElement("button");
-  allBtn.className="btn"+(activeMonth==="all"?" active":"");allBtn.textContent="전체";
-  allBtn.onclick=async function(){setMonthActive(allBtn);activeMonth="all";await loadAllMonths();applyFilter();};
+  allBtn.className="btn"+(selectedMonths.size===0?" active":"");allBtn.textContent="전체";
+  allBtn.onclick=async function(){selectedMonths.clear();await loadAllMonths();buildMonthButtons();applyFilter();};
   c.appendChild(allBtn);
   availableMonths.forEach(function(m){
     var btn=document.createElement("button");
-    btn.className="btn"+(activeMonth===m.key?" active":"");btn.textContent=m.label;
+    btn.className="btn"+(selectedMonths.has(m.key)?" active":"");btn.textContent=m.label;
     btn.setAttribute("data-ym",m.key);
-    btn.onclick=async function(){setMonthActive(btn);await loadMonth(m.key);};
+    btn.onclick=async function(){
+      if(selectedMonths.has(m.key)){selectedMonths.delete(m.key);}else{await loadMonth(m.key);selectedMonths.add(m.key);}
+      if(selectedMonths.size===0){await loadAllMonths();}
+      buildMonthButtons();applyFilter();
+    };
     c.appendChild(btn);
   });
 }
 function setMonthActive(b){document.querySelectorAll("#monthBtns .btn").forEach(function(x){x.classList.remove("active");});b.classList.add("active");}
 
 function filterByMonth(key){
-  if(key!=="all"){
-    var yr=key.slice(0,4),mo=key.slice(4,6);
-    var last=new Date(parseInt(yr),parseInt(mo),0).getDate();
-    document.getElementById("dateFrom").value=yr+"-"+mo+"-01";
-    document.getElementById("dateTo").value=yr+"-"+mo+"-"+String(last).padStart(2,"0");
-  }
+  if(key!=="all"){selectedMonths=new Set([key]);}else{selectedMonths.clear();}
+  buildMonthButtons();
   initDashboard();applyFilter();
 }
 
@@ -333,12 +330,6 @@ function onDateChange(){
 }
 
 function onCarrierChange(){
-  var carrier=document.getElementById("filterCarrier").value;
-  var src=carrier==="all"?rawData:rawData.filter(function(r){return getCarrier(r["모선명"])===carrier;});
-  var vessels=[...new Set(src.map(function(r){return r["모선명"];}))].sort();
-  var sel=document.getElementById("filterVessel");
-  sel.innerHTML='<option value="all">전체</option>';
-  vessels.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
   applyFilter();
 }
 function setDir(dir,btn){
@@ -357,10 +348,6 @@ function setDailyTab(tab,btn){
 function initDashboard(){
   document.getElementById("uploadHint").style.display="none";
   document.getElementById("dash").style.display="grid";
-  var vessels=[...new Set(rawData.map(function(r){return r["모선명"];}))].sort();
-  var sel=document.getElementById("filterVessel");var cur=sel.value;
-  sel.innerHTML='<option value="all">전체</option>';
-  vessels.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});
   var csel=document.getElementById("filterCarrier");var ccur=csel.value;
   var carriers=[...new Set(rawData.map(function(r){return getCarrier(r["모선명"]);}))].filter(Boolean).sort();
   csel.innerHTML='<option value="all">전체</option>';
@@ -377,13 +364,16 @@ function initDashboard(){
 function applyFilter(){
   var from=(document.getElementById("dateFrom").value||"").replace(/-/g,"");
   var to=(document.getElementById("dateTo").value||"").replace(/-/g,"");
-  var vessel=document.getElementById("filterVessel").value;
   var carrier=document.getElementById("filterCarrier").value;
-  filteredData=rawData.filter(function(r){
+  var seenKey=new Set();var dedupData=[];
+  rawData.forEach(function(r){var k=(r["컨테이너번호"]||"")+"_"+(r["출발일자"]||"")+"_"+(r["모선명"]||"");if(!seenKey.has(k)){seenKey.add(k);dedupData.push(r);}});
+  filteredData=dedupData.filter(function(r){
     var d=(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,8);
-    if(from&&d&&d<from)return false;if(to&&d&&d>to)return false;
+    var ym=d.substring(0,6);
+    if(selectedMonths.size>0&&!selectedMonths.has(ym))return false;
+    if(selectedMonths.size===0&&from&&d&&d<from)return false;
+    if(selectedMonths.size===0&&to&&d&&d>to)return false;
     if(activeDir!=="all"&&r["수출입구분"]!==activeDir)return false;
-    if(vessel!=="all"&&r["모선명"]!==vessel)return false;
     if(carrier!=="all"&&getCarrier(r["모선명"])!==carrier)return false;
     return true;
   });
