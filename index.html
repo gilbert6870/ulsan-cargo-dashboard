@@ -39,13 +39,18 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .kpi-sub{font-size:10px;color:var(--muted)}
 #dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr;grid-template-columns:2fr 1fr 1fr 1fr}
 .card{background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
-.card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px}
 .card-title{font-size:11px;font-weight:600;flex:1}
 .expand-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px;line-height:1}
 .expand-btn:hover{color:var(--text);background:var(--card2)}
 .card-body{flex:1;padding:6px;min-height:0;position:relative}
 .card-daily{grid-column:1/3;grid-row:1/2}.card-expimp{grid-column:3/4;grid-row:1/2}.card-fullempty{grid-column:4/5;grid-row:1/2}
 .card-vessel{grid-column:1/2;grid-row:2/3}.card-size{grid-column:2/3;grid-row:2/3}.card-shipper{grid-column:3/5;grid-row:2/3;display:flex;flex-direction:column}
+/* chart tabs */
+.ctab-row{display:flex;gap:2px;flex-shrink:0}
+.ctab{background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;font-size:9px;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.ctab.active{background:var(--card2);border-color:var(--border);color:var(--text)}
+/* shipper tabs */
 .tab-row{display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tab-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 8px;border-radius:4px}
 .tab-btn.active{background:var(--accent);color:#fff}
@@ -58,13 +63,43 @@ td:first-child{text-align:left;max-width:130px;overflow:hidden;text-overflow:ell
 tr:hover td{background:var(--card2)}
 .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font-size:8px;font-weight:700;margin-right:3px}
 .rank-1{background:#f59e0b;color:#000}.rank-2{background:#94a3b8;color:#000}.rank-3{background:#b45309;color:#fff}.rank-n{background:var(--border);color:var(--muted)}
+/* FULL/EMPTY graphic */
+.fe-body{display:flex;flex-direction:column;padding:4px 6px;gap:3px}
+.fe-chart-wrap{flex:1;position:relative;min-height:0}
+.fe-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);text-align:center;pointer-events:none}
+.fe-pct{font-size:17px;font-weight:700;color:var(--green);line-height:1}
+.fe-sub{font-size:9px;color:var(--muted)}
+.fe-bars{flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:0 2px 2px}
+.fe-row{display:flex;align-items:center;gap:4px;font-size:10px}
+.fe-lbl{color:var(--muted);width:22px;text-align:right;flex-shrink:0}
+.fe-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;display:flex}
+.fe-seg{height:100%;transition:width .4s}
+.fe-nums{font-size:9px;color:var(--muted);width:58px;text-align:right;flex-shrink:0;white-space:nowrap}
+/* Size bars */
+.sz-body{display:flex;flex-direction:column;justify-content:space-evenly;padding:6px 8px;gap:0}
+.sz-row{display:flex;align-items:center;gap:5px}
+.sz-lbl{color:var(--text);font-weight:700;width:22px;flex-shrink:0;font-size:11px}
+.sz-track{flex:1;height:14px;background:var(--border);border-radius:3px;overflow:hidden;cursor:pointer}
+.sz-fill{height:100%;border-radius:3px;transition:width .4s;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
+.sz-fill span{font-size:9px;color:#fff;font-weight:700;text-shadow:0 0 4px rgba(0,0,0,.5)}
+.sz-vals{min-width:72px;text-align:right;flex-shrink:0}
+.sz-teu{font-weight:700;font-size:11px;display:block;line-height:1.2}
+.sz-pct{font-size:9px;color:var(--muted)}
+/* modal */
 #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;padding:20px}
 #modalBox{background:var(--card);border-radius:12px;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
 #modalHdr{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 #modalTitle{font-size:15px;font-weight:700;flex:1}
 #modalClose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:4px 8px}
 #modalClose:hover{color:var(--text)}
-#modalBody{flex:1;padding:16px;position:relative;min-height:0;overflow:auto}
+#modalBody{flex:1;display:flex;gap:12px;padding:12px;min-height:0;overflow:hidden}
+.modal-chart-col{flex:1;min-width:0;position:relative}
+.modal-table-col{width:340px;flex-shrink:0;display:flex;flex-direction:column;min-height:0}
+.modal-tbl-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;flex-shrink:0}
+.modal-tbl-scroll{overflow-y:auto;flex:1;min-height:0}
+.modal-tbl-scroll table{font-size:12px}
+.modal-tbl-scroll th{font-size:11px;padding:5px 8px}
+.modal-tbl-scroll td{padding:4px 8px}
 #uploadHint{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted)}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 </style>
@@ -74,7 +109,7 @@ tr:hover td{background:var(--card2)}
   <h1>&#x1F6A2; &#xD758;&#xC544;&#xB77C;&#xC778; <span>&#xC6B8;&#xC0B0;&#xD56D;</span> &#xBB3C;&#xB3D9;&#xB7C9;</h1>
   <div id="loadingBar"><div id="loadingFill"></div></div>
   <div id="statusBar">&#xB85C;&#xB529; &#xC911;...</div>
-  <label style="cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:5px;flex-shrink:0" title="CSV &#xC9C1;&#xC811; &#xC5C5;&#xB85C;&#xB4DC;">
+  <label style="cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:5px;flex-shrink:0">
     &#x1F4C2; CSV<input type="file" accept=".csv" style="display:none" onchange="loadFile(event)">
   </label>
   <button class="btn" style="font-size:11px;flex-shrink:0" onclick="exportCSV()">&#x2B07; &#xB0B4;&#xBCF4;&#xB0B4;&#xAE30;</button>
@@ -91,8 +126,8 @@ tr:hover td{background:var(--card2)}
   <div class="divider"></div>
   <span class="ctrl-label">&#xAD6C;&#xBD84;</span>
   <button class="btn active" id="btnAll" onclick="setDir('all',this)">&#xC804;&#xCCB4;</button>
-  <button class="btn exp-btn" id="btnExp" onclick="setDir('\uc218\ucd9c',this)">&#xC218;&#xCD9C;</button>
-  <button class="btn imp-btn" id="btnImp" onclick="setDir('\uc218\uc785',this)">&#xC218;&#xC785;</button>
+  <button class="btn exp-btn" id="btnExp" onclick="setDir('수출',this)">&#xC218;&#xCD9C;</button>
+  <button class="btn imp-btn" id="btnImp" onclick="setDir('수입',this)">&#xC218;&#xC785;</button>
   <div class="divider"></div>
   <span class="ctrl-label">&#xBAA8;&#xC120;</span>
   <select id="filterVessel" onchange="applyFilter()"><option value="all">&#xC804;&#xCCB4;</option></select>
@@ -107,22 +142,63 @@ tr:hover td{background:var(--card2)}
 </div>
 <div id="uploadHint"><div style="font-size:48px">&#x1F4E6;</div><div>&#xB370;&#xC774;&#xD130;&#xB97C; &#xBD88;&#xB7EC;&#xC624;&#xB294; &#xC911;&#xC785;&#xB2C8;&#xB2E4;...</div></div>
 <div id="dash" style="display:none">
-  <div class="card card-daily"><div class="card-hdr"><span class="card-title">&#x1F4CA; &#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;</span><button class="expand-btn" onclick="openModal('daily','&#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartDaily"></canvas></div></div>
-  <div class="card card-expimp"><div class="card-hdr"><span class="card-title">&#x1F504; &#xC218;&#xCD9C;/&#xC218;&#xC785;</span><button class="expand-btn" onclick="openModal('expimp','&#xC218;&#xCD9C;/&#xC218;&#xC785; &#xBE44;&#xC728;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartExpimp"></canvas></div></div>
-  <div class="card card-fullempty"><div class="card-hdr"><span class="card-title">&#x1F4E6; FULL/EMPTY</span><button class="expand-btn" onclick="openModal('fullempty','FULL/EMPTY &#xBE44;&#xC728;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartFullempty"></canvas></div></div>
-  <div class="card card-vessel"><div class="card-hdr"><span class="card-title">&#x1F6A2; &#xBAA8;&#xC120;&#xBCC4; TEU</span><button class="expand-btn" onclick="openModal('vessel','&#xBAA0;&#xC120;&#xBCC4; TEU')">&#x26F6;</button></div><div class="card-body"><canvas id="chartVessel"></canvas></div></div>
-  <div class="card card-size"><div class="card-hdr"><span class="card-title">&#x1F4D0; &#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;</span><button class="expand-btn" onclick="openModal('size','&#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;')">&#x26F6;</button></div><div class="card-body"><canvas id="chartSize"></canvas></div></div>
-  <div class="card card-shipper"><div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
-    <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('\uc218\ucd9c',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('\uc218\uc785',this)">&#xC218;&#xC785;</button></div>
+  <!-- 일별 TEU 추이 (탭: 수출/수입 | FULL/EMPTY) -->
+  <div class="card card-daily">
+    <div class="card-hdr">
+      <span class="card-title">&#x1F4CA; &#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;</span>
+      <div class="ctab-row">
+        <button class="ctab active" onclick="setDailyTab('expimp',this)">&#xC218;&#xCD9C;/&#xC218;&#xC785;</button>
+        <button class="ctab" onclick="setDailyTab('fullempty',this)">FULL/EMPTY</button>
+      </div>
+      <button class="expand-btn" onclick="openModal('daily','&#xC77C;&#xBCC4; TEU &#xCD94;&#xC774;')">&#x26F6;</button>
+    </div>
+    <div class="card-body"><canvas id="chartDaily"></canvas></div>
+  </div>
+  <!-- 수출/수입 도넛 -->
+  <div class="card card-expimp">
+    <div class="card-hdr"><span class="card-title">&#x1F504; &#xC218;&#xCD9C;/&#xC218;&#xC785;</span><button class="expand-btn" onclick="openModal('expimp','&#xC218;&#xCD9C;/&#xC218;&#xC785; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-body"><canvas id="chartExpimp"></canvas></div>
+  </div>
+  <!-- FULL/EMPTY 그래픽 -->
+  <div class="card card-fullempty">
+    <div class="card-hdr"><span class="card-title">&#x1F4E6; FULL/EMPTY</span><button class="expand-btn" onclick="openModal('fullempty','FULL/EMPTY &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="fe-body card-body" style="padding:4px 6px">
+      <div class="fe-chart-wrap">
+        <canvas id="chartFullempty"></canvas>
+        <div class="fe-overlay"><div class="fe-pct" id="fePct">-</div><div class="fe-sub">FULL</div></div>
+      </div>
+      <div class="fe-bars">
+        <div class="fe-row"><span class="fe-lbl">&#xC218;&#xCD9C;</span><div class="fe-track"><div class="fe-seg" id="feExpFull" style="background:#2ea44f"></div><div class="fe-seg" id="feExpEmpty" style="background:#475569"></div></div><span class="fe-nums" id="feExpNums">-</span></div>
+        <div class="fe-row"><span class="fe-lbl">&#xC218;&#xC785;</span><div class="fe-track"><div class="fe-seg" id="feImpFull" style="background:#1a7a3c"></div><div class="fe-seg" id="feImpEmpty" style="background:#374151"></div></div><span class="fe-nums" id="feImpNums">-</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- 모선별 TEU -->
+  <div class="card card-vessel">
+    <div class="card-hdr"><span class="card-title">&#x1F6A2; &#xBAA8;&#xC120;&#xBCC4; TEU</span><button class="expand-btn" onclick="openModal('vessel','&#xBAA8;&#xC120;&#xBCC4; TEU &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-body"><canvas id="chartVessel"></canvas></div>
+  </div>
+  <!-- 사이즈 별도 표시 -->
+  <div class="card card-size">
+    <div class="card-hdr"><span class="card-title">&#x1F4D0; &#xCEE8;&#xD14C;&#xC774;&#xB108; &#xADDC;&#xACA9;</span><button class="expand-btn" onclick="openModal('size','&#xADDC;&#xACA9;&#xBCC4; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="sz-body card-body" style="padding:6px 8px" id="sizeBars"></div>
+  </div>
+  <!-- 화주별 -->
+  <div class="card card-shipper">
+    <div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
+    <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('수출',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('수입',this)">&#xC218;&#xC785;</button></div>
     <div class="tbl-wrap"><table><thead><tr><th>&#xD654;&#xC8FC;&#xBA85;</th><th>TEU</th><th style="color:var(--exp)">&#xC218;&#xCD9C;</th><th style="color:var(--imp)">&#xC218;&#xC785;</th><th style="color:var(--green)">FULL</th><th>&#xC810;&#xC720;&#xC728;</th></tr></thead><tbody id="shipperTableBody"></tbody></table></div>
   </div>
 </div>
 <div id="modal" onclick="if(event.target===this)closeModal()">
-  <div id="modalBox"><div id="modalHdr"><span id="modalTitle"></span><button id="modalClose" onclick="closeModal()">&#x2715;</button></div><div id="modalBody"></div></div>
+  <div id="modalBox">
+    <div id="modalHdr"><span id="modalTitle"></span><button id="modalClose" onclick="closeModal()">&#x2715;</button></div>
+    <div id="modalBody"></div>
+  </div>
 </div>
 <script>
 var rawData=[],filteredData=[],charts={},shipperTab="all";
-var activeDir="all",activeMonth="all";
+var activeDir="all",activeMonth="all",dailyTab="expimp";
 var availableMonths=[],loadedMonths=new Set();
 
 function parseCSV(text){
@@ -130,7 +206,7 @@ function parseCSV(text){
   var headers=lines[0].split(",").map(function(h){return h.trim().replace(/^"|"$/g,"");});
   return lines.slice(1).map(function(line){
     var cols=[],cur="",inQ=false;
-    for(var i=0;i<line.length;i++){var c=line[i];if(c==="\""){inQ=!inQ;continue;}if(c===","&&!inQ){cols.push(cur.trim());cur="";continue;}cur+=c;}
+    for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'){inQ=!inQ;continue;}if(c===","&&!inQ){cols.push(cur.trim());cur="";continue;}cur+=c;}
     cols.push(cur.trim());
     var row={};headers.forEach(function(h,i){row[h]=(cols[i]||"").replace(/^"|"$/g,"");});
     return row;
@@ -150,7 +226,7 @@ async function init(){
     if(res.ok){
       var idx=await res.json();
       if(idx.months){
-        availableMonths=Object.entries(idx.months).map(function([k,v]){return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).sort(function(a,b){return a.key.localeCompare(b.key);});
+        availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).sort(function(a,b){return a.key.localeCompare(b.key);});
         buildMonthButtons();
         var latest=availableMonths[availableMonths.length-1];
         await loadMonth(latest.key);return;
@@ -160,16 +236,10 @@ async function init(){
   setLoading(30,"데이터 로딩 중...");
   try{
     var res=await fetch("./data/prism_data.csv");
-    if(res.ok){
-      var text=await res.text();
-      rawData=parseCSV(text);detectMonths();buildMonthButtons();
-      setLoading(100,"");showAlert("✅ 데이터 로드 완료 — "+rawData.length.toLocaleString()+"건","success");
-      initDashboard();applyFilter();return;
-    }
+    if(res.ok){var text=await res.text();rawData=parseCSV(text);detectMonths();buildMonthButtons();setLoading(100,"");showAlert("✅ 데이터 로드 완료 — "+rawData.length.toLocaleString()+"건","success");initDashboard();applyFilter();return;}
   }catch(e){}
   setLoading(100,"데이터 없음");
   showAlert("⚠️ 데이터를 찾을 수 없습니다. CSV를 직접 업로드해주세요.","error");
-  document.getElementById("uploadHint").innerHTML="<div style=\"font-size:48px\">📤</div><div>CSV 파일을 업로드해주세요.</div>";
 }
 
 function detectMonths(){
@@ -195,11 +265,7 @@ async function loadMonth(key){
   setLoading(60,"전체 CSV 로딩...");
   try{
     var res=await fetch("./data/prism_data.csv");
-    if(res.ok){
-      var text=await res.text();rawData=parseCSV(text);
-      detectMonths();buildMonthButtons();availableMonths.forEach(function(m){loadedMonths.add(m.key);});
-      activeMonth=key;setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");filterByMonth(key);
-    }
+    if(res.ok){var text=await res.text();rawData=parseCSV(text);detectMonths();buildMonthButtons();availableMonths.forEach(function(m){loadedMonths.add(m.key);});activeMonth=key;setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");filterByMonth(key);}
   }catch(e){setLoading(100,"오류");showAlert("❌ 데이터 로드 실패","error");}
 }
 
@@ -209,11 +275,7 @@ async function loadAllMonths(){
     var m=unloaded[i];setLoading(Math.round((i/Math.max(unloaded.length,1))*80)+10,m.label+" 로딩...");
     try{
       var res=await fetch("./data/monthly_"+m.key+".csv");
-      if(res.ok){
-        var text=await res.text();var rows=parseCSV(text);
-        rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==m.key;});
-        rawData=rawData.concat(rows);loadedMonths.add(m.key);
-      }
+      if(res.ok){var text=await res.text();var rows=parseCSV(text);rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==m.key;});rawData=rawData.concat(rows);loadedMonths.add(m.key);}
     }catch(e){}
   }
   setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");
@@ -247,12 +309,8 @@ function filterByMonth(key){
 function loadFile(ev){
   var f=ev.target.files[0];if(!f)return;
   var r=new FileReader();
-  r.onload=function(e){
-    var rows=parseCSV(e.target.result);rawData=rawData.concat(rows);
-    detectMonths();buildMonthButtons();
-    showAlert("✅ \""+f.name+"\" — "+rows.length.toLocaleString()+"건 추가","success");
-    initDashboard();applyFilter();
-  };r.readAsText(f,"UTF-8");
+  r.onload=function(e){var rows=parseCSV(e.target.result);rawData=rawData.concat(rows);detectMonths();buildMonthButtons();showAlert("✅ \""+f.name+"\" — "+rows.length.toLocaleString()+"건 추가","success");initDashboard();applyFilter();};
+  r.readAsText(f,"UTF-8");
 }
 
 function onDateChange(){
@@ -266,12 +324,19 @@ function setDir(dir,btn){
   btn.classList.add("active");applyFilter();
 }
 
+function setDailyTab(tab,btn){
+  dailyTab=tab;
+  document.querySelectorAll(".ctab-row .ctab").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  updateDailyChart();
+}
+
 function initDashboard(){
   document.getElementById("uploadHint").style.display="none";
   document.getElementById("dash").style.display="grid";
   var vessels=[...new Set(rawData.map(function(r){return r["모선명"];}))].sort();
   var sel=document.getElementById("filterVessel");var cur=sel.value;
-  sel.innerHTML="<option value=\"all\">전체</option>";
+  sel.innerHTML='<option value="all">전체</option>';
   vessels.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});
   var dfrom=document.getElementById("dateFrom"),dto=document.getElementById("dateTo");
   if(!dfrom.value){
@@ -297,6 +362,8 @@ function applyFilter(){
 }
 
 function teu(r){return parseFloat(r["TEU"]||r["teu"]||0)||0;}
+function isFull(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}
+
 function updateKPIs(){
   var d=filteredData;
   var total=d.reduce(function(s,r){return s+teu(r);},0);
@@ -304,7 +371,7 @@ function updateKPIs(){
   var imp=d.filter(function(r){return r["수출입구분"]==="수입";}).reduce(function(s,r){return s+teu(r);},0);
   var vCount=new Set(d.map(function(r){return r["모선명"];})).size;
   var sCount=new Set(d.map(function(r){return r["화주명"];})).size;
-  var full=d.filter(function(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}).reduce(function(s,r){return s+teu(r);},0);
+  var full=d.filter(isFull).reduce(function(s,r){return s+teu(r);},0);
   var fRate=total>0?(full/total*100).toFixed(1):0;
   document.getElementById("kpiTotalTeu").textContent=total.toLocaleString();
   document.getElementById("kpiExpTeu").textContent=exp.toLocaleString();
@@ -319,9 +386,8 @@ function updateKPIs(){
   document.getElementById("kpiFullSub").textContent="EMPTY: "+(100-fRate).toFixed(1)+"%";
 }
 
-var DC={muted:"#94a3b8",border:"#334155"};
-function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 var baseOpts={responsive:true,maintainAspectRatio:false,animation:{duration:150},plugins:{legend:{labels:{font:{size:10},color:"#94a3b8"}}}};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
 function updateCharts(){updateDailyChart();updateExpImpChart();updateFullEmptyChart();updateVesselChart();updateSizeChart();}
 
@@ -330,16 +396,21 @@ function updateDailyChart(){
   var byDate={};
   filteredData.forEach(function(r){
     var d=r["출발일자"];if(!d)return;
-    if(!byDate[d])byDate[d]={수출:0,수입:0};
-    byDate[d][r["수출입구분"]]=(byDate[d][r["수출입구분"]]||0)+teu(r);
+    if(!byDate[d])byDate[d]={수출:0,수입:0,FULL:0,EMPTY:0};
+    var t=teu(r);
+    byDate[d][r["수출입구분"]]=(byDate[d][r["수출입구분"]]||0)+t;
+    byDate[d][isFull(r)?"FULL":"EMPTY"]+=t;
   });
   var labels=Object.keys(byDate).sort();
+  var datasets=dailyTab==="expimp"?[
+    {label:"수출",data:labels.map(function(d){return byDate[d].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:labels.map(function(d){return byDate[d].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]:[
+    {label:"FULL",data:labels.map(function(d){return byDate[d].FULL||0;}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
+    {label:"EMPTY",data:labels.map(function(d){return byDate[d].EMPTY||0;}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
+  ];
   charts["daily"]=new Chart(document.getElementById("chartDaily"),{
-    type:"bar",
-    data:{labels:labels,datasets:[
-      {label:"수출",data:labels.map(function(d){return byDate[d].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-      {label:"수입",data:labels.map(function(d){return byDate[d].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
-    ]},
+    type:"bar",data:{labels:labels,datasets:datasets},
     options:Object.assign({},baseOpts,{interaction:{mode:"index"},scales:{
       x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8",maxTicksLimit:20},grid:{color:"rgba(51,65,85,.3)"}},
       y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",font:{size:9},color:"#94a3b8"}}
@@ -352,8 +423,8 @@ function makeDoughnut(id,canvasId,labels,data,colors){
   charts[id]=new Chart(document.getElementById(canvasId),{
     type:"doughnut",
     data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderWidth:2,borderColor:"#1e293b"}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:150},cutout:"60%",plugins:{
-      legend:{position:"bottom",labels:{font:{size:10},color:"#94a3b8",padding:6,boxWidth:10}},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:150},cutout:"62%",plugins:{
+      legend:{position:"bottom",labels:{font:{size:10},color:"#94a3b8",padding:5,boxWidth:10}},
       tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}
     }}
   });
@@ -366,9 +437,25 @@ function updateExpImpChart(){
 }
 
 function updateFullEmptyChart(){
-  var full=filteredData.filter(function(r){return r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F";}).reduce(function(s,r){return s+teu(r);},0);
-  var empty=filteredData.filter(function(r){return r["풀엠티구분"]==="EMPTY"||r["풀엠티구분"]==="E";}).reduce(function(s,r){return s+teu(r);},0);
+  var d=filteredData;
+  var expFull=d.filter(function(r){return r["수출입구분"]==="수출"&&isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var expEmpty=d.filter(function(r){return r["수출입구분"]==="수출"&&!isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var impFull=d.filter(function(r){return r["수출입구분"]==="수입"&&isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var impEmpty=d.filter(function(r){return r["수출입구분"]==="수입"&&!isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var full=expFull+impFull, empty=expEmpty+impEmpty, total=full+empty;
+  var fPct=total>0?(full/total*100).toFixed(1):0;
   makeDoughnut("fullempty","chartFullempty",["FULL","EMPTY"],[full,empty],["#2ea44f","#475569"]);
+  // center overlay
+  document.getElementById("fePct").textContent=fPct+"%";
+  // breakdown bars
+  var expTotal=expFull+expEmpty, impTotal=impFull+impEmpty;
+  function setPct(id,pct){document.getElementById(id).style.width=pct+"%";}
+  setPct("feExpFull",expTotal>0?(expFull/expTotal*100):0);
+  setPct("feExpEmpty",expTotal>0?(expEmpty/expTotal*100):0);
+  setPct("feImpFull",impTotal>0?(impFull/impTotal*100):0);
+  setPct("feImpEmpty",impTotal>0?(impEmpty/impTotal*100):0);
+  document.getElementById("feExpNums").textContent="F:"+expFull.toLocaleString()+" E:"+expEmpty.toLocaleString();
+  document.getElementById("feImpNums").textContent="F:"+impFull.toLocaleString()+" E:"+impEmpty.toLocaleString();
 }
 
 function updateVesselChart(){
@@ -393,10 +480,23 @@ function updateVesselChart(){
 }
 
 function updateSizeChart(){
-  var s20=filteredData.filter(function(r){return String(r["컨테이너규격"]).includes("20");}).reduce(function(s,r){return s+teu(r);},0);
-  var s40=filteredData.filter(function(r){return String(r["컨테이너규격"]).includes("40");}).reduce(function(s,r){return s+teu(r);},0);
-  var oth=filteredData.filter(function(r){return!String(r["컨테이너규격"]).includes("20")&&!String(r["컨테이너규격"]).includes("40");}).reduce(function(s,r){return s+teu(r);},0);
-  makeDoughnut("size","chartSize",["20'","40'","기타"],[s20,s40,oth],["#f59e0b","#7c3aed","#475569"]);
+  var d=filteredData;
+  var total=d.reduce(function(s,r){return s+teu(r);},0);
+  var s20=d.filter(function(r){return String(r["컨테이너규격"]||"").includes("20");}).reduce(function(s,r){return s+teu(r);},0);
+  var s40=d.filter(function(r){return String(r["컨테이너규격"]||"").includes("40");}).reduce(function(s,r){return s+teu(r);},0);
+  var sOth=total-s20-s40;
+  var sizes=[
+    {lbl:"20'",val:s20,color:"#f59e0b"},
+    {lbl:"40'",val:s40,color:"#7c3aed"},
+    {lbl:"기타",val:Math.max(0,sOth),color:"#475569"}
+  ];
+  var maxV=Math.max.apply(null,sizes.map(function(s){return s.val;}));
+  document.getElementById("sizeBars").innerHTML=sizes.map(function(s){
+    var pct=total>0?(s.val/total*100).toFixed(1):0;
+    var barW=maxV>0?(s.val/maxV*100).toFixed(1):0;
+    var label=barW>25?pct+"%":"";
+    return'<div class="sz-row"><span class="sz-lbl">'+s.lbl+'</span><div class="sz-track"><div class="sz-fill" style="width:'+barW+'%;background:'+s.color+'"><span>'+label+'</span></div></div><div class="sz-vals"><span class="sz-teu">'+s.val.toLocaleString()+'</span><span class="sz-pct">'+pct+'%</span></div></div>';
+  }).join("");
 }
 
 function setShipperTab(tab,btn){
@@ -413,37 +513,175 @@ function updateShipperTable(tab){
     if(!byS[s])byS[s]={total:0,exp:0,imp:0,full:0};
     var t=teu(r);byS[s].total+=t;
     if(r["수출입구분"]==="수출")byS[s].exp+=t;else byS[s].imp+=t;
-    if(r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F")byS[s].full+=t;
+    if(isFull(r))byS[s].full+=t;
   });
   var rows=Object.entries(byS).sort(function(a,b){return b[1].total-a[1].total;});
   var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
-  document.getElementById("shipperTableBody").innerHTML=rows.map(function([name,v],i){
-    var rank=i+1;
-    var badge=rank<=3?'<span class="rank-badge rank-'+rank+'">'+rank+"</span>":'<span class="rank-badge rank-n">'+rank+"</span>";
-    return"<tr><td title=\""+name+"\">"+badge+name+"</td><td><strong>"+v.total.toLocaleString()+"</strong></td><td style=\"color:var(--exp)\">"+v.exp.toLocaleString()+"</td><td style=\"color:var(--imp)\">"+v.imp.toLocaleString()+"</td><td style=\"color:var(--green)\">"+v.full.toLocaleString()+"</td><td>"+(allT>0?(v.total/allT*100).toFixed(1):0)+"%</td></tr>";
+  document.getElementById("shipperTableBody").innerHTML=rows.map(function(e,i){
+    var name=e[0],v=e[1],rank=i+1;
+    var badge=rank<=3?'<span class="rank-badge rank-'+rank+'">'+rank+'</span>':'<span class="rank-badge rank-n">'+rank+"</span>";
+    return"<tr><td title='"+name+"'>"+badge+name+"</td><td><strong>"+v.total.toLocaleString()+"</strong></td><td style='color:var(--exp)'>"+v.exp.toLocaleString()+"</td><td style='color:var(--imp)'>"+v.imp.toLocaleString()+"</td><td style='color:var(--green)'>"+v.full.toLocaleString()+"</td><td>"+(allT>0?(v.total/allT*100).toFixed(1):0)+"%</td></tr>";
   }).join("");
 }
 
+/* ===== 상세 모달 ===== */
 var modalChart=null;
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+  if(modalChart){modalChart.destroy();modalChart=null;}
+}
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal();});
+
+function renderModalLayout(chartHTML,tableHTML){
+  document.getElementById("modal").style.display="block";
+  document.getElementById("modalBody").innerHTML=
+    '<div class="modal-chart-col">'+chartHTML+'</div>'+
+    '<div class="modal-table-col">'+tableHTML+'</div>';
+}
+
 function openModal(key,title){
   document.getElementById("modalTitle").textContent=title;
-  document.getElementById("modalBody").innerHTML='<canvas id="modalCanvas" style="width:100%;height:100%"></canvas>';
-  document.getElementById("modal").style.display="block";
   if(modalChart){modalChart.destroy();modalChart=null;}
-  var src=charts[key];if(!src)return;
+  if(key==="daily"){openDailyModal();return;}
+  if(key==="fullempty"){openFullEmptyModal();return;}
+  if(key==="expimp"){openExpImpModal();return;}
+  if(key==="vessel"){openVesselModal();return;}
+  if(key==="size"){openSizeModal();return;}
+}
+
+function makeModalCanvas(){return'<canvas id="modalCanvas" style="width:100%;height:100%"></canvas>';}
+function cloneToModal(srcKey){
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  var src=charts[srcKey];if(!src)return;
   var ctx=document.getElementById("modalCanvas").getContext("2d");
-  var srcOpts=src.config.options||{};
-  var srcPlugins=srcOpts.plugins||{};
-  modalChart=new Chart(ctx,{
-    type:src.config.type,
-    data:JSON.parse(JSON.stringify(src.config.data)),
-    options:Object.assign({},srcOpts,{maintainAspectRatio:false,animation:{duration:0},
-      plugins:Object.assign({},srcPlugins,{legend:Object.assign({},srcPlugins.legend||{},{labels:{font:{size:13},color:"#94a3b8"}})})})
+  var srcOpts=JSON.parse(JSON.stringify(src.config.options||{}));
+  if(srcOpts.plugins&&srcOpts.plugins.legend&&srcOpts.plugins.legend.labels)srcOpts.plugins.legend.labels.font={size:13};
+  srcOpts.maintainAspectRatio=false;srcOpts.animation={duration:0};
+  modalChart=new Chart(ctx,{type:src.config.type,data:JSON.parse(JSON.stringify(src.config.data)),options:srcOpts});
+}
+
+function openDailyModal(){
+  var byDate={};
+  filteredData.forEach(function(r){
+    var d=r["출발일자"];if(!d)return;
+    if(!byDate[d])byDate[d]={수출:0,수입:0,FULL:0,EMPTY:0,건수:0};
+    var t=teu(r);byDate[d][r["수출입구분"]]=(byDate[d][r["수출입구분"]]||0)+t;
+    byDate[d][isFull(r)?"FULL":"EMPTY"]+=t;byDate[d].건수++;
   });
+  var dates=Object.keys(byDate).sort();
+  var tblRows=dates.map(function(d){
+    var v=byDate[d],tot=(v.수출||0)+(v.수입||0);
+    return'<tr><td>'+d+'</td><td>'+tot.toLocaleString()+'</td><td style="color:#e84c4c">'+(v.수출||0).toLocaleString()+'</td><td style="color:#2196F3">'+(v.수입||0).toLocaleString()+'</td><td style="color:#2ea44f">'+(v.FULL||0).toLocaleString()+'</td><td style="color:#475569">'+(v.EMPTY||0).toLocaleString()+'</td><td style="color:var(--muted)">'+v.건수+'</td></tr>';
+  }).join("");
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">일별 상세</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">날짜</th><th>총TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th style="color:#475569">EMPTY</th><th>건수</th></tr></thead><tbody>'+tblRows+'</tbody></table></div>');
+  var datasets=dailyTab==="expimp"?[
+    {label:"수출",data:dates.map(function(d){return byDate[d].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:dates.map(function(d){return byDate[d].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]:[
+    {label:"FULL",data:dates.map(function(d){return byDate[d].FULL||0;}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
+    {label:"EMPTY",data:dates.map(function(d){return byDate[d].EMPTY||0;}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
+  ];
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"bar",data:{labels:dates,datasets:datasets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},interaction:{mode:"index"},
+      plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:"#94a3b8",maxTicksLimit:30},grid:{color:"rgba(51,65,85,.3)"}},
+        y:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",font:{size:11},color:"#94a3b8"}}}}});
+}
+
+function openExpImpModal(){
+  var expD=filteredData.filter(function(r){return r["수출입구분"]==="수출";}),impD=filteredData.filter(function(r){return r["수출입구분"]==="수입";});
+  var expT=expD.reduce(function(s,r){return s+teu(r);},0),impT=impD.reduce(function(s,r){return s+teu(r);},0),tot=expT+impT;
+  var expFull=expD.filter(isFull).reduce(function(s,r){return s+teu(r);},0);
+  var impFull=impD.filter(isFull).reduce(function(s,r){return s+teu(r);},0);
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">수출/수입 상세</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">구분</th><th>TEU</th><th>비율</th><th style="color:#2ea44f">FULL</th><th>FULL율</th></tr></thead><tbody>'+
+    '<tr><td style="color:#e84c4c;font-weight:700">수출</td><td>'+expT.toLocaleString()+'</td><td>'+(tot>0?(expT/tot*100).toFixed(1):0)+'%</td><td style="color:#2ea44f">'+expFull.toLocaleString()+'</td><td>'+(expT>0?(expFull/expT*100).toFixed(1):0)+'%</td></tr>'+
+    '<tr><td style="color:#2196F3;font-weight:700">수입</td><td>'+impT.toLocaleString()+'</td><td>'+(tot>0?(impT/tot*100).toFixed(1):0)+'%</td><td style="color:#2ea44f">'+impFull.toLocaleString()+'</td><td>'+(impT>0?(impFull/impT*100).toFixed(1):0)+'%</td></tr>'+
+    '<tr style="font-weight:700"><td>합계</td><td>'+tot.toLocaleString()+'</td><td>100%</td><td style="color:#2ea44f">'+(expFull+impFull).toLocaleString()+'</td><td>'+(tot>0?((expFull+impFull)/tot*100).toFixed(1):0)+'%</td></tr>'+
+    '</tbody></table></div>');
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"doughnut",data:{labels:["수출","수입"],datasets:[{data:[expT,impT],backgroundColor:["#e84c4c","#2196F3"],borderWidth:2,borderColor:"#1e293b"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},cutout:"55%",plugins:{legend:{position:"bottom",labels:{font:{size:14},color:"#94a3b8",padding:12}},tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}}}});
+}
+
+function openFullEmptyModal(){
+  var d=filteredData;
+  var expFull=d.filter(function(r){return r["수출입구분"]==="수출"&&isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var expEmpty=d.filter(function(r){return r["수출입구분"]==="수출"&&!isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var impFull=d.filter(function(r){return r["수출입구분"]==="수입"&&isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var impEmpty=d.filter(function(r){return r["수출입구분"]==="수입"&&!isFull(r);}).reduce(function(s,r){return s+teu(r);},0);
+  var full=expFull+impFull,empty=expEmpty+impEmpty,tot=full+empty;
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">FULL/EMPTY 상세</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">구분</th><th style="color:#2ea44f">FULL</th><th style="color:#475569">EMPTY</th><th>합계</th><th>FULL율</th></tr></thead><tbody>'+
+    '<tr><td style="color:#e84c4c;font-weight:700">수출</td><td style="color:#2ea44f">'+expFull.toLocaleString()+'</td><td style="color:#94a3b8">'+expEmpty.toLocaleString()+'</td><td>'+(expFull+expEmpty).toLocaleString()+'</td><td>'+(expFull+expEmpty>0?(expFull/(expFull+expEmpty)*100).toFixed(1):0)+'%</td></tr>'+
+    '<tr><td style="color:#2196F3;font-weight:700">수입</td><td style="color:#2ea44f">'+impFull.toLocaleString()+'</td><td style="color:#94a3b8">'+impEmpty.toLocaleString()+'</td><td>'+(impFull+impEmpty).toLocaleString()+'</td><td>'+(impFull+impEmpty>0?(impFull/(impFull+impEmpty)*100).toFixed(1):0)+'%</td></tr>'+
+    '<tr style="font-weight:700"><td>합계</td><td style="color:#2ea44f">'+full.toLocaleString()+'</td><td style="color:#94a3b8">'+empty.toLocaleString()+'</td><td>'+tot.toLocaleString()+'</td><td>'+(tot>0?(full/tot*100).toFixed(1):0)+'%</td></tr>'+
+    '</tbody></table></div>');
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"doughnut",data:{labels:["수출FULL","수입FULL","수출EMPTY","수입EMPTY"],datasets:[{data:[expFull,impFull,expEmpty,impEmpty],backgroundColor:["#2ea44f","#1a7a3c","#e84c4c40","#2196F340"],borderWidth:2,borderColor:"#1e293b"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},cutout:"50%",plugins:{legend:{position:"bottom",labels:{font:{size:13},color:"#94a3b8",padding:10}},tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}}}});
+}
+
+function openVesselModal(){
+  var byV={};
+  filteredData.forEach(function(r){
+    var v=r["모선명"]||"미상";
+    if(!byV[v])byV[v]={수출:0,수입:0,full:0,cnt:0,voyages:new Set()};
+    var t=teu(r);byV[v].수출+=(r["수출입구분"]==="수출"?t:0);byV[v].수입+=(r["수출입구분"]==="수입"?t:0);
+    if(isFull(r))byV[v].full+=t;byV[v].cnt++;byV[v].voyages.add(r["항차"]||"");
+  });
+  var rows=Object.entries(byV).sort(function(a,b){return(b[1].수출+b[1].수입)-(a[1].수출+a[1].수입);});
+  var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
+  var top15=rows.slice(0,15);
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">모선별 상세 ('+rows.length+'척)</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">모선명</th><th>TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th>항차</th><th>점유율</th></tr></thead><tbody>'+
+    rows.map(function(e){var v=e[1],tot=v.수출+v.수입;return'<tr><td title="'+e[0]+'">'+e[0]+'</td><td><b>'+tot.toLocaleString()+'</b></td><td style="color:#e84c4c">'+v.수출.toLocaleString()+'</td><td style="color:#2196F3">'+v.수입.toLocaleString()+'</td><td style="color:#2ea44f">'+v.full.toLocaleString()+'</td><td style="color:var(--muted)">'+v.voyages.size+'</td><td>'+(allT>0?(tot/allT*100).toFixed(1):0)+'%</td></tr>';}).join("")+
+    '</tbody></table></div>');
+  var vs=top15.map(function(e){return e[0];});
+  var byVM={};top15.forEach(function(e){byVM[e[0]]=e[1];});
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"bar",data:{labels:vs,datasets:[
+    {label:"수출",data:vs.map(function(v){return byVM[v].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:vs.map(function(v){return byVM[v].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},indexAxis:"y",
+    plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
+    scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},y:{stacked:true,ticks:{font:{size:10},color:"#94a3b8"}}}}});
+}
+
+function openSizeModal(){
+  var d=filteredData;
+  var total=d.reduce(function(s,r){return s+teu(r);},0);
+  var sizeMap={};
+  d.forEach(function(r){
+    var sz=r["컨테이너규격"]||"기타";
+    if(!sizeMap[sz])sizeMap[sz]={total:0,수출:0,수입:0,full:0};
+    var t=teu(r);sizeMap[sz].total+=t;
+    if(r["수출입구분"]==="수출")sizeMap[sz].수출+=t;else sizeMap[sz].수입+=t;
+    if(isFull(r))sizeMap[sz].full+=t;
+  });
+  var rows=Object.entries(sizeMap).sort(function(a,b){return b[1].total-a[1].total;});
+  var s20=rows.filter(function(e){return String(e[0]).includes("20");}).reduce(function(s,e){return s+e[1].total;},0);
+  var s40=rows.filter(function(e){return String(e[0]).includes("40");}).reduce(function(s,e){return s+e[1].total;},0);
+  var sOth=total-s20-s40;
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">규격별 상세</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">규격</th><th>TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th>비율</th></tr></thead><tbody>'+
+    rows.map(function(e){var v=e[1];return'<tr><td>'+e[0]+'</td><td><b>'+v.total.toLocaleString()+'</b></td><td style="color:#e84c4c">'+v.수출.toLocaleString()+'</td><td style="color:#2196F3">'+v.수입.toLocaleString()+'</td><td style="color:#2ea44f">'+v.full.toLocaleString()+'</td><td>'+(total>0?(v.total/total*100).toFixed(1):0)+'%</td></tr>';}).join("")+
+    '</tbody></table></div>');
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"doughnut",data:{labels:["20'","40'","기타"],datasets:[{data:[s20,s40,Math.max(0,sOth)],backgroundColor:["#f59e0b","#7c3aed","#475569"],borderWidth:2,borderColor:"#1e293b"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},cutout:"55%",plugins:{legend:{position:"bottom",labels:{font:{size:14},color:"#94a3b8",padding:12}},tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}}}});
 }
 
 function openShipperModal(){
   document.getElementById("modalTitle").textContent="화주별 물동량 상세";
+  if(modalChart){modalChart.destroy();modalChart=null;}
   var data=shipperTab==="all"?filteredData:filteredData.filter(function(r){return r["수출입구분"]===shipperTab;});
   var byS={};
   data.forEach(function(r){
@@ -451,27 +689,35 @@ function openShipperModal(){
     if(!byS[s])byS[s]={total:0,exp:0,imp:0,full:0,empty:0,cnt:0};
     var t=teu(r);byS[s].total+=t;byS[s].cnt++;
     if(r["수출입구분"]==="수출")byS[s].exp+=t;else byS[s].imp+=t;
-    if(r["풀엠티구분"]==="FULL"||r["풀엠티구분"]==="F")byS[s].full+=t;else byS[s].empty+=t;
+    if(isFull(r))byS[s].full+=t;else byS[s].empty+=t;
   });
   var rows=Object.entries(byS).sort(function(a,b){return b[1].total-a[1].total;});
   var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
-  var hdrStyle="padding:8px;text-align:";
-  document.getElementById("modalBody").innerHTML='<div style="height:100%;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="position:sticky;top:0;background:#263348"><th style="'+hdrStyle+'left">순위</th><th style="'+hdrStyle+'left">화주명</th><th style="'+hdrStyle+'right">TEU</th><th style="'+hdrStyle+'right;color:#e84c4c">수출</th><th style="'+hdrStyle+'right;color:#2196F3">수입</th><th style="'+hdrStyle+'right;color:#2ea44f">FULL</th><th style="'+hdrStyle+'right;color:#475569">EMPTY</th><th style="'+hdrStyle+'right">건수</th><th style="'+hdrStyle+'right">점유율</th></tr></thead><tbody>'+rows.map(function([name,v],i){return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--muted)">'+(i+1)+'</td><td style="padding:6px 8px">'+name+'</td><td style="padding:6px 8px;text-align:right;font-weight:700">'+v.total.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#e84c4c">'+v.exp.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#2196F3">'+v.imp.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#2ea44f">'+v.full.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:#475569">'+v.empty.toLocaleString()+'</td><td style="padding:6px 8px;text-align:right;color:var(--muted)">'+v.cnt+'</td><td style="padding:6px 8px;text-align:right">'+(allT>0?(v.total/allT*100).toFixed(1):0)+'%</td></tr>';}).join("")+'</tbody></table></div>';
+  var top10=rows.slice(0,10);
   document.getElementById("modal").style.display="block";
+  document.getElementById("modalBody").innerHTML=
+    '<div class="modal-chart-col">'+makeModalCanvas()+'</div>'+
+    '<div class="modal-table-col">'+
+    '<div class="modal-tbl-title">화주별 상세 ('+rows.length+'개사)</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">순위</th><th style="text-align:left">화주명</th><th>TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th>건수</th><th>점유율</th></tr></thead><tbody>'+
+    rows.map(function(e,i){var v=e[1];return'<tr><td style="color:var(--muted)">'+(i+1)+'</td><td title="'+e[0]+'" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e[0]+'</td><td><b>'+v.total.toLocaleString()+'</b></td><td style="color:#e84c4c">'+v.exp.toLocaleString()+'</td><td style="color:#2196F3">'+v.imp.toLocaleString()+'</td><td style="color:#2ea44f">'+v.full.toLocaleString()+'</td><td style="color:var(--muted)">'+v.cnt+'</td><td>'+(allT>0?(v.total/allT*100).toFixed(1):0)+'%</td></tr>';}).join("")+
+    '</tbody></table></div></div>';
+  var labels=top10.map(function(e){return e[0];});
+  var ctx=document.getElementById("modalCanvas").getContext("2d");
+  modalChart=new Chart(ctx,{type:"bar",data:{labels:labels,datasets:[
+    {label:"수출",data:top10.map(function(e){return e[1].exp;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:top10.map(function(e){return e[1].imp;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},indexAxis:"y",
+    plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
+    scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},y:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"}}}}});
 }
-
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-  if(modalChart){modalChart.destroy();modalChart=null;}
-}
-document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal();});
 
 function exportCSV(){
   if(!filteredData.length){showAlert("데이터가 없습니다.","error");return;}
   var h=Object.keys(filteredData[0]);
-  var csv=[h.join(",")].concat(filteredData.map(function(r){return h.map(function(k){return"\""+((r[k]||"").toString().replace(/"/g,"\"\""))+"\"";}).join(",");})).join("\n");
+  var csv=[h.join(",")].concat(filteredData.map(function(r){return h.map(function(k){return'"'+((r[k]||"").toString().replace(/"/g,'""'))+'"';}).join(",");})).join("\n");
   var a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));
+  a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"}));
   a.download="울산항_물동량_"+new Date().toISOString().slice(0,10)+".csv";a.click();
 }
 
