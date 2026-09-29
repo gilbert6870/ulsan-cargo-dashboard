@@ -37,7 +37,7 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .kpi-val{font-size:20px;font-weight:700;line-height:1.1;margin:2px 0}
 .kpi-sub{font-size:10px;color:var(--muted)}
-#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr 130px;grid-template-columns:2fr 1fr 1fr 1fr}
+#dash{flex:1;overflow:hidden;display:grid;padding:0 12px 8px;gap:6px;min-height:0;grid-template-rows:1fr 1fr 220px;grid-template-columns:2fr 1fr 1fr 1fr}
 .card{background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .card-hdr{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px}
 .card-title{font-size:11px;font-weight:600;flex:1}
@@ -473,14 +473,39 @@ function updateFullEmptyChart(){
 
 function getCarrier(v){
   if(!v)return'기타';
-  var M={'HEUNG-A':'흥아라인','KMTC':'KMTC(고려해운)','SAWASDEE':'시노코르',
-    'SINOKOR':'시노코르','HANSUNG':'한성해운','DONGJIN':'동진상선',
-    'EVER':'에버그린','COSCO':'COSCO','PANCON':'팬콘','PACIFIC':'팬오션',
-    'HONOR':'HONOR','PEGASUS':'PEGASUS','ITX':'ITX해운',
-    'WAN HAI':'완하이','WAN':'완하이','ZHONG GU':'중구물류','ZHONG':'중구물류',
-    'TS':'TS Lines','ESL':'ESL','STARSHIP':'Starship','SKY':'SKY','HAPPY':'HAPPY'};
-  for(var k in M){if(v.startsWith(k))return M[k];}
-  return v.split(' ')[0];
+  var F={
+    'SINOKOR NIIGATA':'시노코르','HANSUNG WEIHAI':'한성해운','WAN HAI 501':'완하이(Wan Hai)',
+    'AKITA TRADER':'일본 TRADER선단','KOBE TRADER':'일본 TRADER선단',
+    'NAGOYA TRADER':'일본 TRADER선단','SENDAI TRADER':'일본 TRADER선단',
+    'TOYAMA TRADER':'일본 TRADER선단','YOKOHAMA TRADER':'일본 TRADER선단',
+    'MOJI EXPRESS':'일본 TRADER선단',
+    'NINGBO TRADER':'중국 TRADER선단','QINGDAO TRADER':'중국 TRADER선단',
+    'HONGKONG VOYAGER':'VOYAGER선단','OSAKA VOYAGER':'VOYAGER선단',
+    'SHANGHAI VOYAGER':'VOYAGER선단','TIANJIN VOYAGER':'VOYAGER선단',
+    'NINGBO VOYAGER':'VOYAGER선단','QINGDAO VOYAGER':'VOYAGER선단',
+    'VOSTOCHNY VOYAGER':'VOYAGER선단','KWANGYANG VOYAGER':'VOYAGER선단',
+    'YEOSU VOYAGER':'VOYAGER선단','LAEM CHABANG VOYAGER':'VOYAGER선단',
+    'SURABAYA VOYAGER':'VOYAGER선단','HOCHIMINH VOYAGER':'VOYAGER선단',
+    'HAKATA VOYAGER':'VOYAGER선단','HAKATA EXPRESS':'VOYAGER선단',
+    'MUMBAI BRIDGE':'BRIDGE선단','SYDNEY BRIDGE':'BRIDGE선단','TIANJIN BRIDGE':'BRIDGE선단',
+    'HEMMA BHUM':'BHUM선단','JIRA BHUM':'BHUM선단','SATTHA BHUM':'BHUM선단',
+    'SONG YUN HE':'중국선사(기타)','SONGYUNHE':'중국선사(기타)',
+    'XIN HE DA':'중국선사(기타)','YONG SHENG 158':'중국선사(기타)',
+    'STARSHIP JUPITER':'Starship','HAPPY LUCKY':'HAPPY Ocean',
+    'SKY JADE':'SKY Shipping','SKY ORION':'SKY Shipping',
+    'ATLANTIC SOUTH':'ATLANTIC SOUTH','BELAWAN':'BELAWAN','CA MANILA':'CA MANILA'
+  };
+  if(F[v])return F[v];
+  var P={
+    'HEUNG-A':'흥아라인','KMTC':'KMTC(고려해운)','SAWASDEE':'시노코르',
+    'SINOKOR':'시노코르','DONGJIN':'동진상선','EVER':'에버그린',
+    'COSCO':'COSCO','PANCON':'팬콘라인','PACIFIC':'팬오션',
+    'ZHONG GU':'중구물류','ZHONG':'중구물류','TS':'TS Lines',
+    'ESL':'ESL Shipping','ITX':'ITX해운','HONOR':'HONOR Shipping',
+    'PEGASUS':'Pegasus Line'
+  };
+  for(var k in P){if(v.startsWith(k))return P[k];}
+  return v;
 }
 function updateCarrierChart(){
   destroyChart("carrier");
@@ -489,7 +514,7 @@ function updateCarrierChart(){
     var c=getCarrier(r["모선명"]);if(!byC[c])byC[c]={수출:0,수입:0};
     byC[c][r["수출입구분"]]=(byC[c][r["수출입구분"]]||0)+teu(r);
   });
-  var cs=Object.keys(byC).sort(function(a,b){return(byC[b]["수출"]+byC[b]["수입"])-(byC[a]["수출"]+byC[a]["수입"]);}).slice(0,12);
+  var cs=Object.keys(byC).sort(function(a,b){return(byC[b]["수출"]+byC[b]["수입"])-(byC[a]["수출"]+byC[a]["수입"]);});
   charts["carrier"]=new Chart(document.getElementById("chartCarrier"),{
     type:"bar",
     data:{labels:cs,datasets:[
