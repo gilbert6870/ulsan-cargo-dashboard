@@ -30,10 +30,10 @@ select{background:var(--card);border:1px solid var(--border);border-radius:5px;c
 .alert-info{background:#1e3a5f;color:#7dd3fc}
 .alert-success{background:#14532d;color:#86efac}
 .alert-error{background:#450a0a;color:#fca5a5}
-#kpiRow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:6px 12px;flex-shrink:0}
+#kpiRow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:6px 12px;flex-shrink:0}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;position:relative;overflow:hidden}
 .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
-.kpi-total::before{background:var(--accent)}.kpi-exp::before{background:var(--exp)}.kpi-imp::before{background:var(--imp)}.kpi-v::before{background:var(--yellow)}.kpi-s::before{background:var(--purple)}.kpi-f::before{background:var(--green)}
+.kpi-total::before{background:var(--accent)}.kpi-exp::before{background:var(--exp)}.kpi-imp::before{background:var(--imp)}.kpi-v::before{background:var(--yellow)}.kpi-s::before{background:var(--purple)}.kpi-f::before{background:var(--green)}.kpi-ts::before{background:#f59e0b}
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .kpi-val{font-size:20px;font-weight:700;line-height:1.1;margin:2px 0}
 .kpi-sub{font-size:10px;color:var(--muted)}
@@ -129,6 +129,11 @@ tr:hover td{background:var(--card2)}
   <button class="btn exp-btn" id="btnExp" onclick="setDir('수출',this)">&#xC218;&#xCD9C;</button>
   <button class="btn imp-btn" id="btnImp" onclick="setDir('수입',this)">&#xC218;&#xC785;</button>
   <div class="divider"></div>
+  <span class="ctrl-label">화물</span>
+  <button class="btn cg-btn active" id="cgAll" onclick="setCargo('all',this)">전체</button>
+  <button class="btn cg-btn" id="cgLocal" onclick="setCargo('로컬',this)">로컬</button>
+  <button class="btn cg-btn" id="cgTs" onclick="setCargo('환적',this)">환적</button>
+  <div class="divider"></div>
   <span class="ctrl-label">항구</span>
   <select id="filterPort" onchange="applyFilter()"><option value="all">전체</option></select>
   <div class="divider"></div>
@@ -139,6 +144,7 @@ tr:hover td{background:var(--card2)}
   <div class="kpi kpi-total"><div class="kpi-label">&#xCD1D; &#xBB3C;&#xB3D9;&#xB7C9;</div><div class="kpi-val" id="kpiTotalTeu">&mdash;</div><div class="kpi-sub" id="kpiTotalSub">TEU</div></div>
   <div class="kpi kpi-exp"><div class="kpi-label">&#xC218;&#xCD9C; TEU</div><div class="kpi-val" id="kpiExpTeu">&mdash;</div><div class="kpi-sub" id="kpiExpSub">&mdash;</div></div>
   <div class="kpi kpi-imp"><div class="kpi-label">&#xC218;&#xC785; TEU</div><div class="kpi-val" id="kpiImpTeu">&mdash;</div><div class="kpi-sub" id="kpiImpSub">&mdash;</div></div>
+  <div class="kpi kpi-ts"><div class="kpi-label">환적 TEU (양하+적하)</div><div class="kpi-val" id="kpiTsTeu">&mdash;</div><div class="kpi-sub" id="kpiTsSub">&mdash;</div></div>
   <div class="kpi kpi-v"><div class="kpi-label">&#xBAA8;&#xC120; &#xC218;</div><div class="kpi-val" id="kpiVessels">&mdash;</div><div class="kpi-sub" id="kpiVesselsSub">&#xCC99;</div></div>
   <div class="kpi kpi-s"><div class="kpi-label">&#xD654;&#xC8FC; &#xC218;</div><div class="kpi-val" id="kpiShippers">&mdash;</div><div class="kpi-sub">&#xAC1C;&#xC0AC;</div></div>
   <div class="kpi kpi-f"><div class="kpi-label">FULL &#xBE44;&#xC728;</div><div class="kpi-val" id="kpiFullRate">&mdash;</div><div class="kpi-sub" id="kpiFullSub">%</div></div>
@@ -218,6 +224,12 @@ function carrierLabel(c){if(!c)return"미상";return CARRIER_NAMES[c]?CARRIER_NA
 function carrierOf(r){return carrierLabel(carrierCode(r));}
 function portLabel(p){if(!p)return"미수집";return PORT_NAMES[p]?PORT_NAMES[p]+"("+p+")":p;}
 function portOf(r){return portLabel(r["항구"]);}
+// 환적: 수입 화물구분 T(환적 양하), 수출 화물구분 R(환적 적하) — 양하·적하 각각 집계
+var activeCargo="all";
+function cargoCls(r){return r["화물구분"]||(r["수출입구분"]==="수입"?r["풀엠티구분"]:"")||"";}
+function isTS(r){var c=cargoCls(r);return c==="T"||c==="R";}
+function setCargo(c,btn){activeCargo=c;document.querySelectorAll("#controls .cg-btn").forEach(function(b){b.classList.remove("active");});btn.classList.add("active");applyFilter();}
+function sumTeu(a){return a.reduce(function(s,r){return s+teu(r);},0);}
 function rowKey(r){return(r["수출입구분"]||"")+"|"+(r["MRN"]||"")+"|"+(r["컨테이너번호"]||"");}
 function trendVal(ym,kind,val){
   if(!summaryRows){if(kind==="dir")return(monthlyIndex[ym]&&monthlyIndex[ym][val==="수출"?"exp_teu":"imp_teu"])||0;return(monthlyFE[ym]&&monthlyFE[ym][val==="F"?"full":"empty"])||0;}
@@ -227,6 +239,9 @@ function trendVal(ym,kind,val){
     if(carrier!=="all"&&carrierLabel(x[1])!==carrier)return;
     if(port!=="all"&&portLabel(x[2])!==port)return;
     if(activeDir!=="all"&&x[3]!==activeDir)return;
+    var ts=(x[5]==="T"||x[5]==="R");
+    if(activeCargo==="로컬"&&ts)return;if(activeCargo==="환적"&&!ts)return;
+    if(kind==="flow"){var pp=val.split("|");if(x[3]!==pp[0]||(pp[1]==="T")!==ts)return;}
     if(kind==="dir"&&x[3]!==val)return;
     if(kind==="fe"&&x[4]!==val)return;
     s+=x[6];});
@@ -409,6 +424,8 @@ function applyFilter(){
     if(activeDir!=="all"&&r["수출입구분"]!==activeDir)return false;
     if(carrier!=="all"&&carrierOf(r)!==carrier)return false;
     if(port!=="all"&&portOf(r)!==port)return false;
+    if(activeCargo==="로컬"&&isTS(r))return false;
+    if(activeCargo==="환적"&&!isTS(r))return false;
     return true;
   });
   updateKPIs();updateCharts();updateShipperTable(shipperTab);
@@ -433,8 +450,11 @@ function updateKPIs(){
   document.getElementById("kpiShippers").textContent=sCount;
   document.getElementById("kpiFullRate").textContent=fRate;
   document.getElementById("kpiTotalSub").textContent="TEU ("+d.length.toLocaleString()+"건)";
-  document.getElementById("kpiExpSub").textContent=total>0?(exp/total*100).toFixed(1)+"%":"0%";
-  document.getElementById("kpiImpSub").textContent=total>0?(imp/total*100).toFixed(1)+"%":"0%";
+  var expTs=sumTeu(d.filter(function(r){return r["수출입구분"]==="수출"&&isTS(r);})),impTs=sumTeu(d.filter(function(r){return r["수출입구분"]==="수입"&&isTS(r);}));
+  document.getElementById("kpiExpSub").textContent="로컬 "+(exp-expTs).toLocaleString()+" · 환적 "+expTs.toLocaleString();
+  document.getElementById("kpiImpSub").textContent="로컬 "+(imp-impTs).toLocaleString()+" · 환적 "+impTs.toLocaleString();
+  document.getElementById("kpiTsTeu").textContent=(expTs+impTs).toLocaleString();
+  document.getElementById("kpiTsSub").textContent="양하 "+impTs.toLocaleString()+" · 적하 "+expTs.toLocaleString()+(total>0?" ("+((expTs+impTs)/total*100).toFixed(1)+"%)":"");
   document.getElementById("kpiVesselsSub").textContent="항차 "+new Set(d.map(function(r){return r["모선명"]+"|"+r["항차"];})).size+"회";
   document.getElementById("kpiFullSub").textContent="EMPTY: "+(100-fRate).toFixed(1)+"%";
 }
@@ -454,8 +474,8 @@ function updateMonthlyTrendChart(){
   var cms=getChartMonths();
   var labels=cms.map(function(ym){return parseInt(ym.slice(4))+"월";});
   var datasets=dailyTab==="expimp"?[
-    {label:"수출",data:cms.map(function(ym){return trendVal(ym,"dir","수출");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-    {label:"수입",data:cms.map(function(ym){return trendVal(ym,"dir","수입");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    {label:"수출(로컬)",data:cms.map(function(ym){return trendVal(ym,"flow","수출|L");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},{label:"수출(환적 적하)",data:cms.map(function(ym){return trendVal(ym,"flow","수출|T");}),backgroundColor:"rgba(245,158,11,.85)",stack:"s"},
+    {label:"수입(로컬)",data:cms.map(function(ym){return trendVal(ym,"flow","수입|L");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"},{label:"수입(환적 양하)",data:cms.map(function(ym){return trendVal(ym,"flow","수입|T");}),backgroundColor:"rgba(168,85,247,.75)",stack:"s"}
   ]:[
     {label:"FULL",data:cms.map(function(ym){return trendVal(ym,"fe","F");}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
     {label:"EMPTY",data:cms.map(function(ym){return trendVal(ym,"fe","E");}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
@@ -488,7 +508,8 @@ function makeDoughnut(id,canvasId,labels,data,colors){
 function updateExpImpChart(){
   var exp=filteredData.filter(function(r){return r["수출입구분"]==="수출";}).reduce(function(s,r){return s+teu(r);},0);
   var imp=filteredData.filter(function(r){return r["수출입구분"]==="수입";}).reduce(function(s,r){return s+teu(r);},0);
-  makeDoughnut("expimp","chartExpimp",["수출","수입"],[exp,imp],["#e84c4c","#2196F3"]);
+  var eT=sumTeu(filteredData.filter(function(r){return r["수출입구분"]==="수출"&&isTS(r);})),iT=sumTeu(filteredData.filter(function(r){return r["수출입구분"]==="수입"&&isTS(r);}));
+  makeDoughnut("expimp","chartExpimp",["수출(로컬)","수출(환적 적하)","수입(로컬)","수입(환적 양하)"],[exp-eT,eT,imp-iT,iT],["#e84c4c","#f59e0b","#2196F3","#a855f7"]);
 }
 
 function updateFullEmptyChart(){
@@ -718,17 +739,17 @@ function openDailyModal(){
   var cms=getChartMonths();
   var labels=cms.map(function(ym){return parseInt(ym.slice(4))+"월";});
   var tblRows=cms.map(function(ym){
-    var exp=trendVal(ym,"dir","수출"),imp=trendVal(ym,"dir","수입"),tot=exp+imp,full=trendVal(ym,"fe","F"),empty=trendVal(ym,"fe","E");
+    var exp=trendVal(ym,"dir","수출"),imp=trendVal(ym,"dir","수입"),tsE=trendVal(ym,"flow","수출|T"),tsI=trendVal(ym,"flow","수입|T"),tot=exp+imp,full=trendVal(ym,"fe","F"),empty=trendVal(ym,"fe","E");
     var nm=ym.slice(0,4)+"년 "+parseInt(ym.slice(4))+"월";
     var nodata=tot===0;
-    return'<tr'+(nodata?' style="color:var(--muted)"':'')+'>'+'<td>'+nm+'</td><td>'+(nodata?'-':tot.toLocaleString())+'</td><td style="color:#e84c4c">'+(nodata?'-':exp.toLocaleString())+'</td><td style="color:#2196F3">'+(nodata?'-':imp.toLocaleString())+'</td><td style="color:#2ea44f">'+(nodata?'-':full.toLocaleString())+'</td><td style="color:#475569">'+(nodata?'-':empty.toLocaleString())+'</td></tr>';
+    return'<tr'+(nodata?' style="color:var(--muted)"':'')+'>'+'<td>'+nm+'</td><td>'+(nodata?'-':tot.toLocaleString())+'</td><td style="color:#e84c4c">'+(nodata?'-':exp.toLocaleString())+'</td><td style="color:#2196F3">'+(nodata?'-':imp.toLocaleString())+'</td><td style="color:#a855f7">'+(nodata?'-':tsI.toLocaleString())+'</td><td style="color:#f59e0b">'+(nodata?'-':tsE.toLocaleString())+'</td><td>'+(nodata?'-':(tsI+tsE).toLocaleString())+'</td><td style="color:#2ea44f">'+(nodata?'-':full.toLocaleString())+'</td><td style="color:#475569">'+(nodata?'-':empty.toLocaleString())+'</td></tr>';
   }).join("");
   renderModalLayout(makeModalCanvas(),
     '<div class="modal-tbl-title">월별 상세 (2026년)</div>'+
-    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">월</th><th>총TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th style="color:#475569">EMPTY</th></tr></thead><tbody>'+tblRows+'</tbody></table></div>');
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">월</th><th>총TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#a855f7">환적양하</th><th style="color:#f59e0b">환적적하</th><th>환적계</th><th style="color:#2ea44f">FULL</th><th style="color:#475569">EMPTY</th></tr></thead><tbody>'+tblRows+'</tbody></table></div>');
   var datasets=dailyTab==="expimp"?[
-    {label:"수출",data:cms.map(function(ym){return trendVal(ym,"dir","수출");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-    {label:"수입",data:cms.map(function(ym){return trendVal(ym,"dir","수입");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    {label:"수출(로컬)",data:cms.map(function(ym){return trendVal(ym,"flow","수출|L");}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},{label:"수출(환적 적하)",data:cms.map(function(ym){return trendVal(ym,"flow","수출|T");}),backgroundColor:"rgba(245,158,11,.85)",stack:"s"},
+    {label:"수입(로컬)",data:cms.map(function(ym){return trendVal(ym,"flow","수입|L");}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"},{label:"수입(환적 양하)",data:cms.map(function(ym){return trendVal(ym,"flow","수입|T");}),backgroundColor:"rgba(168,85,247,.75)",stack:"s"}
   ]:[
     {label:"FULL",data:cms.map(function(ym){return trendVal(ym,"fe","F");}),backgroundColor:"rgba(46,164,79,.8)",stack:"s"},
     {label:"EMPTY",data:cms.map(function(ym){return trendVal(ym,"fe","E");}),backgroundColor:"rgba(71,85,105,.7)",stack:"s"}
