@@ -793,6 +793,9 @@ const today = new Date();
 const m1ago = new Date(today); m1ago.setMonth(m1ago.getMonth()-1);
 document.getElementById('dateFrom').value = m1ago.toISOString().slice(0,10);
 document.getElementById('dateTo').value   = today.toISOString().slice(0,10);
+
+// ── 페이지 로드 시 자동으로 prism_data.csv 불러오기
+document.addEventListener('DOMContentLoaded', loadSampleData);
 </script>
 </body>
 </html>
