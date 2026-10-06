@@ -57,18 +57,18 @@
    "vessels": 99
   },
   "202609": {
-   "rows": 59131,
-   "teu": 88884,
+   "rows": 58640,
+   "teu": 88181,
    "exp_teu": 42898,
-   "imp_teu": 45986,
-   "vessels": 107
+   "imp_teu": 45283,
+   "vessels": 105
   },
   "202610": {
-   "rows": 1165,
-   "teu": 1634,
-   "exp_teu": 1634,
-   "imp_teu": 0,
-   "vessels": 7
+   "rows": 14432,
+   "teu": 21113,
+   "exp_teu": 11706,
+   "imp_teu": 9407,
+   "vessels": 61
   }
  }
 }
