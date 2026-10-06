@@ -191,17 +191,17 @@ tr:hover td{background:var(--card2)}
   </div>
   <!-- 모선별 TEU -->
   <div class="card card-vessel">
-    <div class="card-hdr"><span class="card-title">&#x1F6A2; &#xBAA8;&#xC120;&#xBCC4; TEU</span><button class="expand-btn" onclick="openModal('vessel','&#xBAA8;&#xC120;&#xBCC4; TEU &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-hdr"><span class="card-title">🚢 모선·항차별 TEU <span style="font-weight:400;font-size:10px;color:var(--muted)">(막대 클릭 → 모선 월별 조회)</span></span><button class="ctab" style="margin-left:auto" onclick="openVesselHistory()">모선 월별 조회</button><button class="expand-btn" onclick="openModal('vessel','모선·항차별 TEU 상세')">&#x26F6;</button></div>
     <div class="card-body"><canvas id="chartVessel"></canvas></div>
   </div>
   <!-- 사이즈 별도 표시 -->
   <div class="card card-size">
-    <div class="card-hdr"><span class="card-title">&#x1F4D0; 컨테이너 규격 (전체 / EMPTY)</span><button class="expand-btn" onclick="openModal('size','&#xADDC;&#xACA9;&#xBCC4; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
+    <div class="card-hdr"><span class="card-title">&#x1F4D0; 컨테이너 규격 (전체 / EMPTY)</span><button class="ctab" style="margin-left:auto" onclick="openSizeHistory()">월별 조회</button><button class="expand-btn" onclick="openModal('size','&#xADDC;&#xACA9;&#xBCC4; &#xC0C1;&#xC138;')">&#x26F6;</button></div>
     <div class="sz-body card-body" style="padding:6px 8px" id="sizeBars"></div>
   </div>
   <!-- 화주별 -->
   <div class="card card-shipper">
-    <div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9;</span><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
+    <div class="card-hdr"><span class="card-title">&#x1F3E2; &#xD654;&#xC8FC;&#xBCC4; &#xBB3C;&#xB3D9;&#xB7C9; <span style="font-weight:400;font-size:10px;color:var(--muted)">(행 클릭 → 화주 월별 조회)</span></span><button class="ctab" style="margin-left:auto" onclick="openShipperHistory()">화주 월별 조회</button><button class="expand-btn" onclick="openShipperModal()">&#x26F6;</button></div>
     <div class="tab-row"><button class="tab-btn active" onclick="setShipperTab('all',this)">&#xC804;&#xCCB4;</button><button class="tab-btn" onclick="setShipperTab('수출',this)">&#xC218;&#xCD9C;</button><button class="tab-btn" onclick="setShipperTab('수입',this)">&#xC218;&#xC785;</button></div>
     <div class="tbl-wrap"><table><thead><tr><th>&#xD654;&#xC8FC;&#xBA85;</th><th>TEU</th><th style="color:var(--exp)">&#xC218;&#xCD9C;</th><th style="color:var(--imp)">&#xC218;&#xC785;</th><th style="color:var(--green)">FULL</th><th>&#xC810;&#xC720;&#xC728;</th></tr></thead><tbody id="shipperTableBody"></tbody></table></div>
   </div>
@@ -235,7 +235,7 @@ function portLabel(p){if(!p)return"미수집";return PORT_NAMES[p]?PORT_NAMES[p]
 function customsCode(r){return(r["세관"]||"").substring(0,3);}
 function customsLabel(c){if(!c)return"미수집";return CUSTOMS_NAMES[c]?CUSTOMS_NAMES[c]+"("+c+")":c;}
 function portOf(r){return customsLabel(customsCode(r));}
-var customsDefaulted=false;
+var customsDefaulted=false;var voyRows=null,sizeRows=null,shipRows=null,shipList=[];
 // 환적: 수입 화물구분 T(환적 양하), 수출 화물구분 R(환적 적하) — 양하·적하 각각 집계
 var activeCargo="all";
 function cargoCls(r){return r["화물구분"]||(r["수출입구분"]==="수입"?r["풀엠티구분"]:"")||"";}
@@ -295,6 +295,8 @@ async function init(){
       if(idx.months){
         monthlyIndex=idx.months;showUpdated(idx.updated);
         try{var sres=await fetch("./data/summary.json");if(sres.ok){var sj=await sres.json();summaryRows=sj.rows||null;}}catch(e){}
+        try{var vres=await fetch("./data/voyages.json");if(vres.ok){var vj=await vres.json();voyRows=vj.rows||null;}}catch(e){}
+        fetch("./data/sizes.json").then(function(r){return r.ok?r.json():null;}).then(function(j){if(j)sizeRows=j.rows;}).catch(function(){});
 var _n=new Date(),_cym=_n.getFullYear()*100+(_n.getMonth()+1);
 availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).filter(function(m){return parseInt(m.key)<=_cym;}).sort(function(a,b){return a.key.localeCompare(b.key);});
         buildMonthButtons();
@@ -675,25 +677,71 @@ function openCarrierModal(){
     scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},
     y:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{display:false}}}})});
 }
+function fmtD(d){d=String(d||"");return d.length>=8?d.slice(4,6)+"-"+d.slice(6,8):d;}
+function voyageGroups(data){
+  var by={};
+  data.forEach(function(r){var k=(r["모선명"]||"미상")+"|"+(r["항차"]||"");
+    if(!by[k])by[k]={vessel:r["모선명"]||"미상",voyage:r["항차"]||"",수출:0,수입:0,full:0,van:0,ts:0,dE:"",dI:""};
+    var g=by[k],t=teu(r),d=(r["출발일자"]||"").substring(0,8);g[r["수출입구분"]]=(g[r["수출입구분"]]||0)+t;g.van++;
+    if(isFull(r))g.full+=t;if(isTS(r))g.ts+=t;
+    if(r["수출입구분"]==="수출"){if(!g.dE||d<g.dE)g.dE=d;}else{if(!g.dI||d<g.dI)g.dI=d;}});
+  return Object.values(by).sort(function(a,b){return(b.수출+b.수입)-(a.수출+a.수입);});
+}
 function updateVesselChart(){
   destroyChart("vessel");
-  var byV={};
-  filteredData.forEach(function(r){
-    var v=r["모선명"];if(!byV[v])byV[v]={수출:0,수입:0};
-    byV[v][r["수출입구분"]]=(byV[v][r["수출입구분"]]||0)+teu(r);
-  });
-  var vs=Object.keys(byV).sort(function(a,b){return(byV[b].수출+byV[b].수입)-(byV[a].수출+byV[a].수입);}).slice(0,15);
+  var gs=voyageGroups(filteredData).slice(0,15);
   charts["vessel"]=new Chart(document.getElementById("chartVessel"),{
     type:"bar",
-    data:{labels:vs,datasets:[
-      {label:"수출",data:vs.map(function(v){return byV[v].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-      {label:"수입",data:vs.map(function(v){return byV[v].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+    data:{labels:gs.map(function(g){return g.vessel+" "+g.voyage;}),datasets:[
+      {label:"수출",data:gs.map(function(g){return g.수출;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+      {label:"수입",data:gs.map(function(g){return g.수입;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
     ]},
-    options:Object.assign({},baseOpts,{indexAxis:"y",scales:{
+    options:Object.assign({},baseOpts,{indexAxis:"y",onClick:function(e,els){if(els&&els.length){openVesselHistory(gs[els[0].index].vessel);}},
+      onHover:function(e,els){e.native.target.style.cursor=els.length?"pointer":"default";},
+      plugins:Object.assign({},baseOpts.plugins,{tooltip:{callbacks:{afterBody:function(it){var g=gs[it[0].dataIndex];return["ETD "+(fmtD(g.dE)||"-")+" / ETA "+(fmtD(g.dI)||"-"),"VAN "+g.van+" · FULL "+g.full+" TEU","클릭: 이 모선 월별 조회"];}}}}),
+      scales:{
       x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"}},
       y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"}}
     }})
   });
+}
+
+/* ── 모선 월별 조회 (voyages.json: 전체 기간, 현재 세관·선사부호·구분 필터 적용) ── */
+function voyFiltered(){
+  if(!voyRows)return[];
+  var port=document.getElementById("filterPort").value,carrier=document.getElementById("filterCarrier").value;
+  return voyRows.filter(function(x){
+    if(port!=="all"&&customsLabel(x[4])!==port)return false;
+    if(carrier!=="all"&&carrierLabel(x[5])!==carrier)return false;
+    if(activeDir!=="all"&&x[3]!==activeDir)return false;
+    return true;});
+}
+function openVesselHistory(vessel){
+  var all=voyFiltered();
+  if(!all.length){showAlert("모선 월별 데이터(voyages.json)가 아직 없습니다. 다음 업데이트 후 사용할 수 있습니다.","error");return;}
+  var tot={};all.forEach(function(x){tot[x[1]]=(tot[x[1]]||0)+x[8];});
+  var names=Object.keys(tot).sort();
+  if(!vessel||!tot[vessel]){var sv=document.getElementById("filterVessel").value;vessel=(sv!=="all"&&tot[sv])?sv:Object.keys(tot).sort(function(a,b){return tot[b]-tot[a];})[0];}
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  document.getElementById("modalTitle").innerHTML='🚢 모선 월별 조회 <select id="vhSel" style="margin-left:8px;font-size:13px" onchange="openVesselHistory(this.value)">'+
+    names.map(function(n){return'<option'+(n===vessel?' selected':'')+'>'+n+'</option>';}).join("")+'</select>'+
+    '<span style="font-size:11px;color:var(--muted);margin-left:8px">'+document.getElementById("filterPort").value.replace("all","전체 세관")+' · '+(activeDir==="all"?"수출+수입":activeDir)+'</span>';
+  var rs=all.filter(function(x){return x[1]===vessel;}).sort(function(a,b){return a[6].localeCompare(b[6])||a[3].localeCompare(b[3]);});
+  var cms=getChartMonths(),mE={},mI={};
+  rs.forEach(function(x){if(x[3]==="수출")mE[x[0]]=(mE[x[0]]||0)+x[8];else mI[x[0]]=(mI[x[0]]||0)+x[8];});
+  var sum=function(k){return rs.reduce(function(s,x){return s+x[k];},0);};
+  var vy=new Set(rs.map(function(x){return x[2];})).size;
+  var body=rs.map(function(x){var ex=x[3]==="수출";return'<tr><td>'+parseInt(x[0].slice(4))+'월</td><td>'+x[2]+'</td><td style="color:'+(ex?"#e84c4c":"#2196F3")+'">'+x[3]+'</td><td>'+fmtD(x[6])+'</td><td>'+x[7].toLocaleString()+'</td><td><b>'+x[8].toLocaleString()+'</b></td><td style="color:#2ea44f">'+x[9].toLocaleString()+'</td><td>'+(x[8]-x[9]).toLocaleString()+'</td><td style="color:#f59e0b">'+(x[10]||"")+'</td></tr>';}).join("");
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">'+vessel+' — 항차 '+vy+'회 · '+sum(7).toLocaleString()+' VAN · '+sum(8).toLocaleString()+' TEU (FULL '+sum(9).toLocaleString()+')</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th>월</th><th>항차</th><th>구분</th><th>ETD/ETA</th><th>VAN</th><th>TEU</th><th style="color:#2ea44f">FULL</th><th>EMPTY</th><th style="color:#f59e0b">환적</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+  document.querySelector(".modal-table-col").style.width="520px";
+  modalChart=new Chart(document.getElementById("modalCanvas").getContext("2d"),{type:"bar",plugins:[barValuePlugin],
+    data:{labels:cms.map(function(ym){return parseInt(ym.slice(4))+"월";}),datasets:[
+      {label:"수출",data:cms.map(function(ym){return mE[ym]||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+      {label:"수입",data:cms.map(function(ym){return mI[ym]||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
+      scales:{x:{stacked:true,ticks:{font:{size:12},color:"#94a3b8"},grid:{color:"rgba(51,65,85,.3)"}},y:{stacked:true,grace:"10%",ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",color:"#94a3b8"}}}}});
 }
 
 function sizeCat(r){
@@ -710,7 +758,7 @@ function sizeRowsHtml(d,title,color){
   var html='<div class="sz-sec"><span>'+title+'</span><span>'+totV.toLocaleString()+' VAN · '+totT.toLocaleString()+' TEU</span></div>';
   cats.forEach(function(k){if(!m[k].van)return;
     var pct=totT>0?(m[k].teu/totT*100).toFixed(1):0,w=maxT>0?(m[k].teu/maxT*100).toFixed(1):0;
-    html+='<div class="sz-row"><span class="sz-lbl">'+k+'</span><div class="sz-track"><div class="sz-fill" style="width:'+w+'%;background:'+color[k]+'"><span>'+(w>30?pct+"%":"")+'</span></div></div>'
+    html+='<div class="sz-row" style="cursor:pointer" onclick="openSizeHistory()"><span class="sz-lbl">'+k+'</span><div class="sz-track"><div class="sz-fill" style="width:'+w+'%;background:'+color[k]+'"><span>'+(w>30?pct+"%":"")+'</span></div></div>'
       +'<div class="sz-vals"><span class="sz-teu">'+m[k].van.toLocaleString()+'V · '+m[k].teu.toLocaleString()+'T</span></div></div>';});
   return html;
 }
@@ -738,10 +786,11 @@ function updateShipperTable(tab){
   });
   var rows=Object.entries(byS).sort(function(a,b){return b[1].total-a[1].total;});
   var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
+  shipList=rows.map(function(e){return e[0];});
   document.getElementById("shipperTableBody").innerHTML=rows.map(function(e,i){
     var name=e[0],v=e[1],rank=i+1;
     var badge=rank<=3?'<span class="rank-badge rank-'+rank+'">'+rank+'</span>':'<span class="rank-badge rank-n">'+rank+"</span>";
-    return"<tr><td title='"+name+"'>"+badge+name+"</td><td><strong>"+v.total.toLocaleString()+"</strong></td><td style='color:var(--exp)'>"+v.exp.toLocaleString()+"</td><td style='color:var(--imp)'>"+v.imp.toLocaleString()+"</td><td style='color:var(--green)'>"+v.full.toLocaleString()+"</td><td>"+(allT>0?(v.total/allT*100).toFixed(1):0)+"%</td></tr>";
+    return"<tr style='cursor:pointer' onclick='openShipperHistory(shipList["+i+"])'><td title='"+name+"'>"+badge+name+"</td><td><strong>"+v.total.toLocaleString()+"</strong></td><td style='color:var(--exp)'>"+v.exp.toLocaleString()+"</td><td style='color:var(--imp)'>"+v.imp.toLocaleString()+"</td><td style='color:var(--green)'>"+v.full.toLocaleString()+"</td><td>"+(allT>0?(v.total/allT*100).toFixed(1):0)+"%</td></tr>";
   }).join("");
 }
 
@@ -844,29 +893,95 @@ function openFullEmptyModal(){
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},cutout:"50%",plugins:{legend:{position:"bottom",labels:{font:{size:13},color:"#94a3b8",padding:10}},tooltip:{callbacks:{label:function(c){return c.label+": "+c.parsed.toLocaleString()+" TEU";}}}}}});
 }
 
-function openVesselModal(){
-  var byV={};
-  filteredData.forEach(function(r){
-    var v=r["모선명"]||"미상";
-    if(!byV[v])byV[v]={수출:0,수입:0,full:0,cnt:0,voyages:new Set()};
-    var t=teu(r);byV[v].수출+=(r["수출입구분"]==="수출"?t:0);byV[v].수입+=(r["수출입구분"]==="수입"?t:0);
-    if(isFull(r))byV[v].full+=t;byV[v].cnt++;byV[v].voyages.add(r["항차"]||"");
-  });
-  var rows=Object.entries(byV).sort(function(a,b){return(b[1].수출+b[1].수입)-(a[1].수출+a[1].수입);});
-  var allT=filteredData.reduce(function(s,r){return s+teu(r);},0);
-  var top15=rows.slice(0,15);
+/* 공통: 월별 요약 행 필터 (세관·선사부호·구분·화물) */
+function histKeep(dir,cus,bl,ts){
+  var port=document.getElementById("filterPort").value,carrier=document.getElementById("filterCarrier").value;
+  if(port!=="all"&&customsLabel(cus)!==port)return false;
+  if(carrier!=="all"&&carrierLabel(bl)!==carrier)return false;
+  if(activeDir!=="all"&&dir!==activeDir)return false;
+  if(activeCargo==="로컬"&&ts)return false;if(activeCargo==="환적"&&!ts)return false;
+  return true;
+}
+function histSub(){return document.getElementById("filterPort").value.replace("all","전체 세관")+' · '+(activeDir==="all"?"수출+수입":activeDir)+(activeCargo==="all"?"":" · "+activeCargo);}
+function histChart(labels,datasets){
+  modalChart=new Chart(document.getElementById("modalCanvas").getContext("2d"),{type:"bar",plugins:[barValuePlugin],
+    data:{labels:labels,datasets:datasets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
+      scales:{x:{stacked:true,ticks:{font:{size:12},color:"#94a3b8"},grid:{color:"rgba(51,65,85,.3)"}},y:{stacked:true,grace:"10%",ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"},title:{display:true,text:"TEU",color:"#94a3b8"}}}}});
+}
+function noHist(n){showAlert(n+" 월별 데이터가 아직 없습니다. 다음 업데이트 후 사용할 수 있습니다.","error");}
+
+/* 규격 월별 조회 */
+var sizeHistMode="all";
+function openSizeHistory(mode){
+  if(!sizeRows){noHist("규격");return;}
+  if(mode)sizeHistMode=mode;
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  var cats=["20'","40'","40'HC"],m={},cms=getChartMonths();
+  cms.forEach(function(ym){m[ym]={};cats.concat(["기타"]).forEach(function(c){m[ym][c]={v:0,t:0,ev:0,et:0};});});
+  sizeRows.forEach(function(x){if(!m[x[0]]||!histKeep(x[1],x[2],x[3],x[6]))return;var c=m[x[0]][x[4]]||m[x[0]]["기타"];
+    c.v+=x[7];c.t+=x[8];if(x[5]==="E"){c.ev+=x[7];c.et+=x[8];}});
+  var em=sizeHistMode==="empty";
+  document.getElementById("modalTitle").innerHTML='📐 컨테이너 규격 월별 조회 '+
+    '<button class="ctab'+(em?'':' active')+'" onclick="openSizeHistory(\'all\')">전체</button><button class="ctab'+(em?' active':'')+'" onclick="openSizeHistory(\'empty\')">EMPTY</button>'+
+    '<span style="font-size:11px;color:var(--muted);margin-left:8px">'+histSub()+'</span>';
+  var V=function(c){return em?c.ev:c.v;},T=function(c){return em?c.et:c.t;};
+  var tot={};cats.forEach(function(c){tot[c]={v:0,t:0};});
+  var body=cms.map(function(ym){var r=m[ym],sv=0,st=0;
+    var tds=cats.map(function(c){sv+=V(r[c]);st+=T(r[c]);tot[c].v+=V(r[c]);tot[c].t+=T(r[c]);return'<td>'+V(r[c]).toLocaleString()+'</td><td>'+T(r[c]).toLocaleString()+'</td>';}).join("");
+    return'<tr><td>'+parseInt(ym.slice(4))+'월</td>'+tds+'<td><b>'+sv.toLocaleString()+'</b></td><td><b>'+st.toLocaleString()+'</b></td></tr>';}).join("");
+  var tv=0,tt=0;var foot='<tr style="border-top:2px solid var(--border)"><td><b>합계</b></td>'+cats.map(function(c){tv+=tot[c].v;tt+=tot[c].t;return'<td><b>'+tot[c].v.toLocaleString()+'</b></td><td><b>'+tot[c].t.toLocaleString()+'</b></td>';}).join("")+'<td><b>'+tv.toLocaleString()+'</b></td><td><b>'+tt.toLocaleString()+'</b></td></tr>';
   renderModalLayout(makeModalCanvas(),
-    '<div class="modal-tbl-title">모선별 상세 ('+rows.length+'척)</div>'+
-    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">모선명</th><th>TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th>항차</th><th>점유율</th></tr></thead><tbody>'+
-    rows.map(function(e){var v=e[1],tot=v.수출+v.수입;return'<tr><td title="'+e[0]+'">'+e[0]+'</td><td><b>'+tot.toLocaleString()+'</b></td><td style="color:#e84c4c">'+v.수출.toLocaleString()+'</td><td style="color:#2196F3">'+v.수입.toLocaleString()+'</td><td style="color:#2ea44f">'+v.full.toLocaleString()+'</td><td style="color:var(--muted)">'+v.voyages.size+'</td><td>'+(allT>0?(tot/allT*100).toFixed(1):0)+'%</td></tr>';}).join("")+
+    '<div class="modal-tbl-title">'+(em?"EMPTY ":"전체 ")+'규격별 VAN · TEU</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th rowspan="2">월</th>'+cats.map(function(c){return'<th colspan="2">'+c+'</th>';}).join("")+'<th colspan="2">합계</th></tr><tr>'+cats.concat(["합계"]).map(function(){return'<th>VAN</th><th>TEU</th>';}).join("")+'</tr></thead><tbody>'+body+foot+'</tbody></table></div>');
+  document.querySelector(".modal-table-col").style.width="560px";
+  var col={"20'":"#f59e0b","40'":"#7c3aed","40'HC":"#a855f7"};
+  histChart(cms.map(function(ym){return parseInt(ym.slice(4))+"월";}),cats.map(function(c){return{label:c,data:cms.map(function(ym){return T(m[ym][c]);}),backgroundColor:col[c],stack:"s"};}));
+}
+
+/* 화주 월별 조회 */
+function openShipperHistory(name){
+  if(!shipRows){showAlert("화주 월별 데이터 불러오는 중...","success");
+    fetch("./data/shippers.json").then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.rows){shipRows=j.rows;openShipperHistory(name);}else noHist("화주");}).catch(function(){noHist("화주");});return;}
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  var tot={};var rs=shipRows.filter(function(x){if(!histKeep(x[2],x[3],x[4],x[5]))return false;tot[x[1]]=(tot[x[1]]||0)+x[7];return true;});
+  var names=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a];});
+  if(!names.length){noHist("화주");return;}
+  if(!name||!tot[name])name=names[0];
+  var opts=names.slice(0,500);if(opts.indexOf(name)<0)opts.unshift(name);
+  document.getElementById("modalTitle").innerHTML='🏢 화주 월별 조회 <select id="shSel" style="margin-left:8px;font-size:13px;max-width:420px" onchange="openShipperHistory(this.value)">'+
+    opts.map(function(n,i){return'<option value="'+n.replace(/"/g,"&quot;")+'"'+(n===name?' selected':'')+'>'+(i+1)+'. '+n+' ('+tot[n].toLocaleString()+' TEU)</option>';}).join("")+'</select>'+
+    '<span style="font-size:11px;color:var(--muted);margin-left:8px">'+histSub()+'</span>';
+  var cms=getChartMonths(),m={};cms.forEach(function(ym){m[ym]={e:0,i:0,f:0,v:0,ts:0};});
+  rs.forEach(function(x){if(x[1]!==name||!m[x[0]])return;var c=m[x[0]];if(x[2]==="수출")c.e+=x[7];else c.i+=x[7];c.f+=x[8];c.v+=x[6];if(x[5])c.ts+=x[7];});
+  var S={e:0,i:0,f:0,v:0,ts:0};
+  var body=cms.map(function(ym){var c=m[ym];for(var k in S)S[k]+=c[k];var t=c.e+c.i;
+    return'<tr'+(t?'':' style="color:var(--muted)"')+'><td>'+parseInt(ym.slice(4))+'월</td><td style="color:#e84c4c">'+c.e.toLocaleString()+'</td><td style="color:#2196F3">'+c.i.toLocaleString()+'</td><td><b>'+t.toLocaleString()+'</b></td><td style="color:#2ea44f">'+c.f.toLocaleString()+'</td><td>'+(t-c.f).toLocaleString()+'</td><td>'+c.v.toLocaleString()+'</td><td style="color:#f59e0b">'+(c.ts||"")+'</td></tr>';}).join("");
+  var T=S.e+S.i;
+  body+='<tr style="border-top:2px solid var(--border)"><td><b>합계</b></td><td><b>'+S.e.toLocaleString()+'</b></td><td><b>'+S.i.toLocaleString()+'</b></td><td><b>'+T.toLocaleString()+'</b></td><td><b>'+S.f.toLocaleString()+'</b></td><td><b>'+(T-S.f).toLocaleString()+'</b></td><td><b>'+S.v.toLocaleString()+'</b></td><td><b>'+(S.ts||"")+'</b></td></tr>';
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">'+name+'</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th>월</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th>TEU</th><th style="color:#2ea44f">FULL</th><th>EMPTY</th><th>VAN</th><th style="color:#f59e0b">환적</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+  document.querySelector(".modal-table-col").style.width="520px";
+  histChart(cms.map(function(ym){return parseInt(ym.slice(4))+"월";}),[
+    {label:"수출",data:cms.map(function(ym){return m[ym].e;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:cms.map(function(ym){return m[ym].i;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}]);
+}
+
+function openVesselModal(){
+  var gs=voyageGroups(filteredData);
+  var nV=new Set(gs.map(function(g){return g.vessel;})).size;
+  renderModalLayout(makeModalCanvas(),
+    '<div class="modal-tbl-title">모선·항차별 상세 ('+nV+'척 · '+gs.length+'항차) — 행을 누르면 모선 월별 조회</div>'+
+    '<div class="modal-tbl-scroll"><table><thead><tr><th style="text-align:left">모선명</th><th>항차</th><th>ETD/ETA</th><th>TEU</th><th style="color:#e84c4c">수출</th><th style="color:#2196F3">수입</th><th style="color:#2ea44f">FULL</th><th>VAN</th></tr></thead><tbody>'+
+    gs.map(function(g,i){return'<tr style="cursor:pointer" onclick="openVesselHistory(\''+g.vessel.replace(/'/g,"\\'")+'\')"><td title="'+g.vessel+'">'+g.vessel+'</td><td>'+g.voyage+'</td><td>'+(fmtD(g.dE)||"-")+' / '+(fmtD(g.dI)||"-")+'</td><td><b>'+(g.수출+g.수입).toLocaleString()+'</b></td><td style="color:#e84c4c">'+g.수출.toLocaleString()+'</td><td style="color:#2196F3">'+g.수입.toLocaleString()+'</td><td style="color:#2ea44f">'+g.full.toLocaleString()+'</td><td>'+g.van.toLocaleString()+'</td></tr>';}).join("")+
     '</tbody></table></div>');
-  var vs=top15.map(function(e){return e[0];});
-  var byVM={};top15.forEach(function(e){byVM[e[0]]=e[1];});
-  var ctx=document.getElementById("modalCanvas").getContext("2d");
-  modalChart=new Chart(ctx,{type:"bar",data:{labels:vs,datasets:[
-    {label:"수출",data:vs.map(function(v){return byVM[v].수출||0;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
-    {label:"수입",data:vs.map(function(v){return byVM[v].수입||0;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
-  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},indexAxis:"y",
+  document.querySelector(".modal-table-col").style.width="560px";
+  var top=gs.slice(0,25);
+  modalChart=new Chart(document.getElementById("modalCanvas").getContext("2d"),{type:"bar",data:{labels:top.map(function(g){return g.vessel+" "+g.voyage;}),datasets:[
+    {label:"수출",data:top.map(function(g){return g.수출;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
+    {label:"수입",data:top.map(function(g){return g.수입;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},indexAxis:"y",onClick:function(e,els){if(els&&els.length)openVesselHistory(top[els[0].index].vessel);},
     plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
     scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},y:{stacked:true,ticks:{font:{size:10},color:"#94a3b8"}}}}});
 }

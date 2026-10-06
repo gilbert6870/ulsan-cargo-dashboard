@@ -21,7 +21,7 @@ if errorlevel 1 (
 )
 
 echo [3/3] git push>> "%LOG%"
-git -C "%~dp0." add data/monthly_*.csv data/index.json data/summary.json >> "%LOG%" 2>&1
+git -C "%~dp0." add data/monthly_*.csv data/index.json data/summary.json data/voyages.json data/sizes.json data/shippers.json >> "%LOG%" 2>&1
 git -C "%~dp0." commit -m "data: daily update %DATE%" >> "%LOG%" 2>&1
 git -C "%~dp0." push origin master >> "%LOG%" 2>&1
 if errorlevel 1 (echo [WARN] git push failed>> "%LOG%") else (echo [OK] GitHub Pages updated>> "%LOG%")

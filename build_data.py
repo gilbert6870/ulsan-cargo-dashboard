@@ -72,11 +72,53 @@ def main():
 
     from datetime import datetime
     last_col = max((r.get('수집일시', '') or '' for r in dedup), default='')
-    meta = {'updated': datetime.now().strftime('%Y-%m-%d %H:%M'), 'last_collected': last_col[:16]}
+    from datetime import timezone, timedelta
+    meta = {'updated': datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M'), 'last_collected': last_col[:16]}  # KST
     (OUT / 'index.json').write_text(json.dumps({'months': index, **meta}, ensure_ascii=False, indent=1), encoding='utf-8')
     summary = {'cols': ['ym', 'operator', 'customs', 'dir', 'fe', 'cls', 'teu', 'cnt', 'bl_carrier', 'vessel'],
                'rows': [list(k[:6]) + [round(v[0]), v[1], k[6], k[7]] for k, v in sorted(summ.items())]}
     (OUT / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False), encoding='utf-8')
+    # 모선·항차별 요약 (모선 월별 조회용)
+    voy = {}
+    for ym, rs in by_month.items():
+        for r in rs:
+            k = (ym, r.get('모선명', ''), r.get('항차', ''), r.get('수출입구분', ''),
+                 (r.get('세관', '') or '')[:3], (r.get('MBL번호', '') or '')[:4])
+            v = voy.setdefault(k, ['99999999', 0, 0.0, 0.0, 0.0])
+            d = (r.get('출발일자', '') or '')[:8]
+            if d and d < v[0]: v[0] = d
+            t = float(r.get('TEU') or 0)
+            v[1] += 1; v[2] += t
+            if (r.get('FE') or 'F') == 'F': v[3] += t
+            if (r.get('화물구분') or '') in ('T', 'R'): v[4] += t
+    vrows = [list(k) + [v[0], v[1], round(v[2]), round(v[3]), round(v[4])] for k, v in sorted(voy.items())]
+    (OUT / 'voyages.json').write_text(json.dumps({'cols': ['ym', 'vessel', 'voyage', 'dir', 'customs', 'bl_carrier', 'date', 'van', 'teu', 'full', 'ts'],
+                                                  'rows': vrows}, ensure_ascii=False), encoding='utf-8')
+    print(f'voyages.json ({len(vrows)}행) 저장 완료')
+    # 규격·화주 월별 요약 (월별 조회용)
+    def size_cat(r):
+        c = (r.get('컨테이너코드', '') or '').upper()
+        if c[:1] == '2': return "20'"
+        if c[:1] in ('4', 'L'): return "40'HC" if c[1:2] == '5' else "40'"
+        g = r.get('컨테이너규격', '') or ''
+        return "20'" if '20' in g else ("40'" if '40' in g else '기타')
+    sz, sh = {}, {}
+    for ym, rs in by_month.items():
+        for r in rs:
+            t = float(r.get('TEU') or 0)
+            ts = 1 if (r.get('화물구분') or '') in ('T', 'R') else 0
+            fe = r.get('FE') or 'F'
+            cus = (r.get('세관', '') or '')[:3]; bl = (r.get('MBL번호', '') or '')[:4]; dr = r.get('수출입구분', '')
+            k = (ym, dr, cus, bl, size_cat(r), fe, ts)
+            v = sz.setdefault(k, [0, 0.0]); v[0] += 1; v[1] += t
+            k = (ym, r.get('화주명', '') or '미상', dr, cus, bl, ts)
+            v = sh.setdefault(k, [0, 0.0, 0.0]); v[0] += 1; v[1] += t
+            if fe == 'F': v[2] += t
+    (OUT / 'sizes.json').write_text(json.dumps({'cols': ['ym', 'dir', 'customs', 'bl_carrier', 'size', 'fe', 'ts', 'van', 'teu'],
+        'rows': [list(k) + [v[0], round(v[1])] for k, v in sorted(sz.items())]}, ensure_ascii=False), encoding='utf-8')
+    (OUT / 'shippers.json').write_text(json.dumps({'cols': ['ym', 'shipper', 'dir', 'customs', 'bl_carrier', 'ts', 'van', 'teu', 'full'],
+        'rows': [list(k) + [v[0], round(v[1]), round(v[2])] for k, v in sorted(sh.items())]}, ensure_ascii=False), encoding='utf-8')
+    print(f'sizes.json ({len(sz)}행) / shippers.json ({len(sh)}행) 저장 완료')
     print(f'index.json / summary.json ({len(summary["rows"])}행) 저장 완료')
 
 if __name__ == '__main__':

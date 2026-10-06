@@ -43,7 +43,7 @@ if errorlevel 1 (echo     FAILED - see logs\recollect.log) else (echo     OK)
 echo [build] monthly files ...
 "%PY%" build_data.py >> "%LOG%" 2>&1
 echo [git] push ...
-git add data\monthly_*.csv data\index.json data\summary.json >> "%LOG%" 2>&1
+git add data\monthly_*.csv data\index.json data\summary.json data\voyages.json data\sizes.json data\shippers.json >> "%LOG%" 2>&1
 git commit -m "data: 2026 re-fetch with customs/FE/transship fields" >> "%LOG%" 2>&1
 git push origin master >> "%LOG%" 2>&1
 if errorlevel 1 (echo     push FAILED - see logs\recollect.log) else (echo     push OK)
