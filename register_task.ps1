@@ -1,11 +1,12 @@
 # Register daily 09:00 update task (no admin needed)
 $ErrorActionPreference = "Stop"
-$dir  = Split-Path -LiteralPath $MyInvocation.MyCommand.Path -Parent   # LiteralPath: folder name has [0]
+$dir  = $PSScriptRoot   # folder name has [0]; avoid wildcard path cmdlets
 $bat  = Join-Path -Path $dir -ChildPath "daily_update.bat"
 $logD = Join-Path -Path $dir -ChildPath "logs"
 if (-not (Test-Path -LiteralPath $logD)) { New-Item -ItemType Directory -Path $logD | Out-Null }
 $out  = Join-Path -Path $logD -ChildPath "task_status.txt"
 try {
+  $ErrorActionPreference = "Stop"
   if (-not (Test-Path -LiteralPath $bat)) { throw "daily_update.bat not found: $bat" }
   $action   = New-ScheduledTaskAction -Execute "cmd.exe" -Argument ("/c `"" + $bat + "`"") -WorkingDirectory $dir
   $trigger  = New-ScheduledTaskTrigger -Daily -At "09:00"
