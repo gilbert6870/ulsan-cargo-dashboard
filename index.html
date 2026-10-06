@@ -504,6 +504,16 @@ var barValuePlugin={id:"barValues",afterDatasetsDraw:function(chart){
     metas.forEach(function(m){var v=chart.data.datasets[m.index].data[i]||0;tot+=v;var b=m.data[i];if(b&&(top===null||b.y<top)){top=b.y;x=b.x;}});
     if(tot>0&&top!==null){ctx.font="bold "+(big?"13px":"10px")+" sans-serif";ctx.fillStyle="#e2e8f0";ctx.textBaseline="bottom";ctx.fillText(Math.round(tot).toLocaleString(),x,top-2);}}
   ctx.restore();}};
+var hBarValuePlugin={id:"hBarValues",afterDatasetsDraw:function(chart){
+  var ctx=chart.ctx,metas=chart.data.datasets.map(function(d,i){return chart.getDatasetMeta(i);}).filter(function(m){return !m.hidden;});
+  if(!metas.length)return;var big=chart.canvas.height>500;ctx.save();ctx.textBaseline="middle";
+  metas.forEach(function(m){m.data.forEach(function(bar,i){var v=chart.data.datasets[m.index].data[i];if(!v)return;var w=Math.abs(bar.x-bar.base);
+    var s=Math.round(v).toLocaleString();ctx.font=(big?"11px":"9px")+" sans-serif";if(w<ctx.measureText(s).width+6)return;
+    ctx.fillStyle="#fff";ctx.textAlign="center";ctx.fillText(s,(bar.x+bar.base)/2,bar.y);});});
+  var n=chart.data.labels.length;for(var i=0;i<n;i++){var tot=0,right=null,y=null;
+    metas.forEach(function(m){var v=chart.data.datasets[m.index].data[i]||0;tot+=v;var b=m.data[i];if(b&&(right===null||b.x>right)){right=b.x;y=b.y;}});
+    if(tot>0&&right!==null){ctx.font="bold "+(big?"12px":"10px")+" sans-serif";ctx.fillStyle="#e2e8f0";ctx.textAlign="left";ctx.fillText(Math.round(tot).toLocaleString()+" TEU",right+4,y);}}
+  ctx.restore();}};
 var baseOpts={responsive:true,maintainAspectRatio:false,animation:{duration:150},plugins:{legend:{labels:{font:{size:10},color:"#94a3b8"}}}};
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
@@ -691,7 +701,7 @@ function updateVesselChart(){
   destroyChart("vessel");
   var gs=voyageGroups(filteredData).slice(0,15);
   charts["vessel"]=new Chart(document.getElementById("chartVessel"),{
-    type:"bar",
+    type:"bar",plugins:[hBarValuePlugin],
     data:{labels:gs.map(function(g){return g.vessel+" "+g.voyage;}),datasets:[
       {label:"수출",data:gs.map(function(g){return g.수출;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
       {label:"수입",data:gs.map(function(g){return g.수입;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
@@ -700,7 +710,7 @@ function updateVesselChart(){
       onHover:function(e,els){e.native.target.style.cursor=els.length?"pointer":"default";},
       plugins:Object.assign({},baseOpts.plugins,{tooltip:{callbacks:{afterBody:function(it){var g=gs[it[0].dataIndex];return["ETD "+(fmtD(g.dE)||"-")+" / ETA "+(fmtD(g.dI)||"-"),"VAN "+g.van+" · FULL "+g.full+" TEU","클릭: 이 모선 월별 조회"];}}}}),
       scales:{
-      x:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"}},
+      x:{stacked:true,grace:"18%",ticks:{font:{size:9},color:"#94a3b8"},grid:{color:"#334155"}},
       y:{stacked:true,ticks:{font:{size:9},color:"#94a3b8"}}
     }})
   });
@@ -978,12 +988,12 @@ function openVesselModal(){
     '</tbody></table></div>');
   document.querySelector(".modal-table-col").style.width="560px";
   var top=gs.slice(0,25);
-  modalChart=new Chart(document.getElementById("modalCanvas").getContext("2d"),{type:"bar",data:{labels:top.map(function(g){return g.vessel+" "+g.voyage;}),datasets:[
+  modalChart=new Chart(document.getElementById("modalCanvas").getContext("2d"),{type:"bar",plugins:[hBarValuePlugin],data:{labels:top.map(function(g){return g.vessel+" "+g.voyage;}),datasets:[
     {label:"수출",data:top.map(function(g){return g.수출;}),backgroundColor:"rgba(232,76,76,.8)",stack:"s"},
     {label:"수입",data:top.map(function(g){return g.수입;}),backgroundColor:"rgba(33,150,243,.7)",stack:"s"}
   ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},indexAxis:"y",onClick:function(e,els){if(els&&els.length)openVesselHistory(top[els[0].index].vessel);},
     plugins:{legend:{labels:{font:{size:13},color:"#94a3b8"}}},
-    scales:{x:{stacked:true,ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},y:{stacked:true,ticks:{font:{size:10},color:"#94a3b8"}}}}});
+    scales:{x:{stacked:true,grace:"12%",ticks:{font:{size:11},color:"#94a3b8"},grid:{color:"#334155"}},y:{stacked:true,ticks:{font:{size:10},color:"#94a3b8"}}}}});
 }
 
 function openSizeModal(){
