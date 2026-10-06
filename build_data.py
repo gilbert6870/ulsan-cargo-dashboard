@@ -70,7 +70,10 @@ def main():
             summ[key][0] += t(r); summ[key][1] += 1
         print(f'  {ym}: {len(rs):,}행  {index[ym]["teu"]:,} TEU')
 
-    (OUT / 'index.json').write_text(json.dumps({'months': index}, ensure_ascii=False, indent=1), encoding='utf-8')
+    from datetime import datetime
+    last_col = max((r.get('수집일시', '') or '' for r in dedup), default='')
+    meta = {'updated': datetime.now().strftime('%Y-%m-%d %H:%M'), 'last_collected': last_col[:16]}
+    (OUT / 'index.json').write_text(json.dumps({'months': index, **meta}, ensure_ascii=False, indent=1), encoding='utf-8')
     summary = {'cols': ['ym', 'operator', 'customs', 'dir', 'fe', 'cls', 'teu', 'cnt', 'bl_carrier', 'vessel'],
                'rows': [list(k[:6]) + [round(v[0]), v[1], k[6], k[7]] for k, v in sorted(summ.items())]}
     (OUT / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False), encoding='utf-8')

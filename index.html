@@ -12,7 +12,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 header{background:var(--card);border-bottom:1px solid var(--border);height:44px;display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0}
 header h1{font-size:14px;font-weight:700;white-space:nowrap}
 header h1 span{color:var(--accent)}
-#statusBar{font-size:11px;color:var(--muted);margin-left:auto;text-align:right;white-space:nowrap}
+#updBadge{margin-left:auto;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+#updBadge.fresh{color:#22c55e;border-color:#22c55e}#updBadge.stale{color:#f59e0b;border-color:#f59e0b}
+#statusBar{font-size:11px;color:var(--muted);margin-left:8px;text-align:right;white-space:nowrap}
 #loadingBar{width:180px;height:3px;background:var(--border);border-radius:2px;display:none}
 #loadingFill{height:100%;background:var(--accent);border-radius:2px;width:0;transition:width .3s}
 #controls{background:var(--card2);border-bottom:1px solid var(--border);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
@@ -109,6 +111,7 @@ tr:hover td{background:var(--card2)}
 <header>
   <h1>&#x1F6A2; &#xD758;&#xC544;&#xB77C;&#xC778; <span>&#xC6B8;&#xC0B0;&#xD56D;</span> &#xBB3C;&#xB3D9;&#xB7C9;</h1>
   <div id="loadingBar"><div id="loadingFill"></div></div>
+  <div id="updBadge" title="PLISM 데이터 수집·게시 시각 (매일 09:00 자동)">🔄 업데이트 확인 중...</div>
   <div id="statusBar">&#xB85C;&#xB529; &#xC911;...</div>
   <label style="cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:5px;flex-shrink:0">
     &#x1F4C2; CSV<input type="file" accept=".csv" style="display:none" onchange="loadFile(event)">
@@ -270,6 +273,13 @@ function parseCSV(text){
   }).filter(function(r){return Object.values(r).some(function(v){return v;});});
 }
 
+function showUpdated(u){
+  var b=document.getElementById("updBadge");if(!b)return;
+  if(!u){b.textContent="🔄 업데이트 시각 없음";return;}
+  var t=new Date(u.replace(" ","T")+":00+09:00"),hrs=(Date.now()-t.getTime())/36e5;
+  b.textContent="🔄 데이터 업데이트: "+u+(hrs<1?" (방금)":hrs<24?" ("+Math.floor(hrs)+"시간 전)":" ("+Math.floor(hrs/24)+"일 전)");
+  b.className=hrs<=26?"fresh":"stale";
+}
 function setLoading(pct,msg){
   document.getElementById("loadingBar").style.display=pct<100?"block":"none";
   document.getElementById("loadingFill").style.width=pct+"%";
@@ -283,7 +293,7 @@ async function init(){
     if(res.ok){
       var idx=await res.json();
       if(idx.months){
-        monthlyIndex=idx.months;
+        monthlyIndex=idx.months;showUpdated(idx.updated);
         try{var sres=await fetch("./data/summary.json");if(sres.ok){var sj=await sres.json();summaryRows=sj.rows||null;}}catch(e){}
 var _n=new Date(),_cym=_n.getFullYear()*100+(_n.getMonth()+1);
 availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).filter(function(m){return parseInt(m.key)<=_cym;}).sort(function(a,b){return a.key.localeCompare(b.key);});
@@ -425,7 +435,7 @@ function initDashboard(){
     if(dates.length){dfrom.value=dates[0].replace(/\./g,"-");dto.value=dates[dates.length-1].replace(/\./g,"-");}
   }
   var now=new Date().toLocaleString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
-  document.getElementById("statusBar").textContent="총 "+rawData.length.toLocaleString()+"건 | "+now;
+  document.getElementById("statusBar").textContent="총 "+rawData.length.toLocaleString()+"건";
 }
 
 function applyFilter(){
