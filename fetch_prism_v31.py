@@ -599,8 +599,28 @@ def main():
             log(f"{INTERVAL_MIN}분 후 재실행...")
             time.sleep(INTERVAL_MIN * 60)
     else:
-        collect(date_from, date_to, full_replace=args.full_replace)
+        res = collect(date_from, date_to, full_replace=args.full_replace)
+        if not res:
+            log("[ERROR] 수집 실패 (로그인/접속 오류)")
+            sys.exit(1)
+
+
+def _keep_awake_and_watchdog(limit_min=25):
+    """자동 실행 중 PC 절전 방지 + 멈춤 감시(limit_min 분 넘으면 강제 종료 → 다음 재시도에서 다시 수집)"""
+    import threading
+    try:
+        if os.name == 'nt':
+            import ctypes
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+    except Exception:
+        pass
+    def _kill():
+        log(f"[ERROR] {limit_min}분 넘게 응답 없음 → 강제 종료 (다음 재시도에서 다시 수집)")
+        os._exit(3)
+    t = threading.Timer(limit_min * 60, _kill); t.daemon = True; t.start()
 
 
 if __name__ == '__main__':
+    if '--watch' not in sys.argv:
+        _keep_awake_and_watchdog(25 if '--date-from' not in sys.argv else 120)
     main()

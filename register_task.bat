@@ -6,7 +6,7 @@ echo Run the update once now to test? (Y/N)
 set /p ans=
 if /i "%ans%"=="Y" (
   echo Running daily_update.bat ... please wait
-  call "%~dp0daily_update.bat"
+  call "%~dp0daily_update.bat" force
   echo Done. Result is in logs\daily_update.log
 )
 pause
