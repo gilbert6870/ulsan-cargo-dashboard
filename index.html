@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>흥아라인 울산항 물동량 대시보드</title>
@@ -235,6 +236,7 @@ function portLabel(p){if(!p)return"미수집";return PORT_NAMES[p]?PORT_NAMES[p]
 function customsCode(r){return(r["세관"]||"").substring(0,3);}
 function customsLabel(c){if(!c)return"미수집";return CUSTOMS_NAMES[c]?CUSTOMS_NAMES[c]+"("+c+")":c;}
 function portOf(r){return customsLabel(customsCode(r));}
+var NOCACHE="?v="+Date.now();  // 브라우저·GitHub 캐시 때문에 예전 데이터가 보이지 않도록
 var customsDefaulted=false;var voyRows=null,sizeRows=null,shipRows=null,shipList=[];
 // 환적: 수입 화물구분 T(환적 양하), 수출 화물구분 R(환적 적하) — 양하·적하 각각 집계
 var activeCargo="all";
@@ -289,14 +291,14 @@ function setLoading(pct,msg){
 async function init(){
   setLoading(10,"인덱스 로딩 중...");
   try{
-    var res=await fetch("./data/index.json");
+    var res=await fetch("./data/index.json"+NOCACHE,{cache:"no-store"});
     if(res.ok){
       var idx=await res.json();
       if(idx.months){
         monthlyIndex=idx.months;showUpdated(idx.updated);
-        try{var sres=await fetch("./data/summary.json");if(sres.ok){var sj=await sres.json();summaryRows=sj.rows||null;}}catch(e){}
-        try{var vres=await fetch("./data/voyages.json");if(vres.ok){var vj=await vres.json();voyRows=vj.rows||null;}}catch(e){}
-        fetch("./data/sizes.json").then(function(r){return r.ok?r.json():null;}).then(function(j){if(j)sizeRows=j.rows;}).catch(function(){});
+        try{var sres=await fetch("./data/summary.json"+NOCACHE,{cache:"no-store"});if(sres.ok){var sj=await sres.json();summaryRows=sj.rows||null;}}catch(e){}
+        try{var vres=await fetch("./data/voyages.json"+NOCACHE,{cache:"no-store"});if(vres.ok){var vj=await vres.json();voyRows=vj.rows||null;}}catch(e){}
+        fetch("./data/sizes.json"+NOCACHE,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(j){if(j)sizeRows=j.rows;}).catch(function(){});
 var _n=new Date(),_cym=_n.getFullYear()*100+(_n.getMonth()+1);
 availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];return Object.assign({key:k,label:k.slice(0,4)+"년 "+parseInt(k.slice(4))+"월"},v);}).filter(function(m){return parseInt(m.key)<=_cym;}).sort(function(a,b){return a.key.localeCompare(b.key);});
         buildMonthButtons();
@@ -307,7 +309,7 @@ availableMonths=Object.entries(idx.months).map(function(e){var k=e[0],v=e[1];ret
   }catch(e){}
   setLoading(30,"데이터 로딩 중...");
   try{
-    var res=await fetch("./data/prism_data.csv");
+    var res=await fetch("./data/prism_data.csv"+NOCACHE,{cache:"no-store"});
     if(res.ok){var text=await res.text();rawData=parseCSV(text);detectMonths();buildMonthButtons();setLoading(100,"");showAlert("✅ 데이터 로드 완료 — "+rawData.length.toLocaleString()+"건","success");initDashboard();applyFilter();return;}
   }catch(e){}
   setLoading(100,"데이터 없음");
@@ -324,7 +326,7 @@ async function loadMonth(key){
   if(loadedMonths.has(key)){activeMonth=key;filterByMonth(key);return;}
   setLoading(50,key+" 로딩...");
   try{
-    var res=await fetch("./data/monthly_"+key+".csv");
+    var res=await fetch("./data/monthly_"+key+".csv"+NOCACHE,{cache:"no-store"});
     if(res.ok){
       var text=await res.text();var rows=parseCSV(text);
       rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==key;});
@@ -339,7 +341,7 @@ activeMonth=key;
   }catch(e){}
   setLoading(60,"전체 CSV 로딩...");
   try{
-    var res=await fetch("./data/prism_data.csv");
+    var res=await fetch("./data/prism_data.csv"+NOCACHE,{cache:"no-store"});
     if(res.ok){var text=await res.text();rawData=parseCSV(text);detectMonths();buildMonthButtons();availableMonths.forEach(function(m){loadedMonths.add(m.key);});activeMonth=key;setLoading(100,"");showAlert("✅ 전체 — "+rawData.length.toLocaleString()+"건","success");filterByMonth(key);}
   }catch(e){setLoading(100,"오류");showAlert("❌ 데이터 로드 실패","error");}
 }
@@ -349,7 +351,7 @@ async function loadAllMonths(){
   for(var i=0;i<unloaded.length;i++){
     var m=unloaded[i];setLoading(Math.round((i/Math.max(unloaded.length,1))*80)+10,m.label+" 로딩...");
     try{
-      var res=await fetch("./data/monthly_"+m.key+".csv");
+      var res=await fetch("./data/monthly_"+m.key+".csv"+NOCACHE,{cache:"no-store"});
       if(res.ok){var text=await res.text();var rows=parseCSV(text);rawData=rawData.filter(function(r){return(r["출발일자"]||"").replace(/[.\-]/g,"").substring(0,6)!==m.key;});rawData=rawData.concat(rows);loadedMonths.add(m.key);}
     }catch(e){}
   }
@@ -963,7 +965,7 @@ function openSizeHistory(mode){
 /* 화주 월별 조회 */
 function openShipperHistory(name){
   if(!shipRows){showAlert("화주 월별 데이터 불러오는 중...","success");
-    fetch("./data/shippers.json").then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.rows){shipRows=j.rows;openShipperHistory(name);}else noHist("화주");}).catch(function(){noHist("화주");});return;}
+    fetch("./data/shippers.json"+NOCACHE,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.rows){shipRows=j.rows;openShipperHistory(name);}else noHist("화주");}).catch(function(){noHist("화주");});return;}
   if(modalChart){modalChart.destroy();modalChart=null;}
   var tot={};var rs=shipRows.filter(function(x){if(!histKeep(x[2],x[3],x[4],x[5]))return false;tot[x[1]]=(tot[x[1]]||0)+x[7];return true;});
   var names=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a];});
