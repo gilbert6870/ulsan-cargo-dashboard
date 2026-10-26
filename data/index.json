@@ -64,13 +64,13 @@
    "vessels": 105
   },
   "202610": {
-   "rows": 52535,
-   "teu": 77155,
-   "exp_teu": 40581,
-   "imp_teu": 36574,
-   "vessels": 104
+   "rows": 56007,
+   "teu": 82723,
+   "exp_teu": 42739,
+   "imp_teu": 39984,
+   "vessels": 105
   }
  },
- "updated": "2026-10-24 09:04",
- "last_collected": "2026-10-24 00:01"
+ "updated": "2026-10-26 09:02",
+ "last_collected": "2026-10-26 00:00"
 }
