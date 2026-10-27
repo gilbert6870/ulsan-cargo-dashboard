@@ -40,3 +40,8 @@ setup_github_auth.bat
 fetch_run_output*.txt
 fetch_setup_output.txt
 playwright_*.txt
+
+# 내부 문서 (공개 저장소에 올리지 않음)
+docs/PRD.md
+docs/BRD.md
+docs/archive/

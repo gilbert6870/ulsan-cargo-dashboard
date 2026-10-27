@@ -383,7 +383,7 @@ def auto_login(page):
         log("ERROR: .env에 PRISM_USER_ID / PRISM_PASSWORD 없음")
         return False
 
-    log(f"자동 로그인 시도 (ID: {USER_ID})")
+    log(f"자동 로그인 시도 (ID: {USER_ID[:2]}***)")
     page.wait_for_timeout(2000)
 
     ss_start = str(DATA_DIR / f"login_start_{datetime.now().strftime('%H%M%S')}.png")
