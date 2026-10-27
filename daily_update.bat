@@ -30,7 +30,10 @@ if errorlevel 1 (
 echo [3/3] git push>> "%LOG%"
 git -C "%~dp0." add data/monthly_*.csv data/index.json data/summary.json data/voyages.json data/sizes.json data/shippers.json >> "%LOG%" 2>&1
 git -C "%~dp0." commit -m "data: daily update %DATE%" >> "%LOG%" 2>&1
-git -C "%~dp0." push origin master >> "%LOG%" 2>&1
+set GIT_TERMINAL_PROMPT=0
+set GCM_INTERACTIVE=never
+REM push with 5-minute timeout (a hung push blocked the 10/27 update)
+"%PY%" -c "import subprocess,sys;sys.exit(subprocess.run(['git','-C',r'%~dp0.','push','origin','master'],timeout=300).returncode)" >> "%LOG%" 2>&1
 if errorlevel 1 (
   echo [WARN] git push failed - will retry next hour>> "%LOG%"
   exit /b 1
