@@ -64,20 +64,20 @@
    "vessels": 105
   },
   "202610": {
-   "rows": 63456,
-   "teu": 94010,
-   "exp_teu": 48775,
-   "imp_teu": 45235,
-   "vessels": 107
+   "rows": 65200,
+   "teu": 96512,
+   "exp_teu": 49155,
+   "imp_teu": 47357,
+   "vessels": 109
   },
   "202611": {
-   "rows": 2,
-   "teu": 3,
-   "exp_teu": 0,
-   "imp_teu": 3,
-   "vessels": 2
+   "rows": 1406,
+   "teu": 2068,
+   "exp_teu": 1302,
+   "imp_teu": 766,
+   "vessels": 12
   }
  },
- "updated": "2026-10-30 09:02",
- "last_collected": "2026-10-30 00:00"
+ "updated": "2026-10-31 09:04",
+ "last_collected": "2026-10-31 00:01"
 }
