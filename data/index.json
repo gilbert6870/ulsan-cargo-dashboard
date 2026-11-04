@@ -71,13 +71,13 @@
    "vessels": 108
   },
   "202611": {
-   "rows": 7952,
-   "teu": 11821,
-   "exp_teu": 5506,
-   "imp_teu": 6315,
-   "vessels": 42
+   "rows": 10283,
+   "teu": 15301,
+   "exp_teu": 7271,
+   "imp_teu": 8030,
+   "vessels": 48
   }
  },
- "updated": "2026-11-03 10:04",
- "last_collected": "2026-11-03 00:01"
+ "updated": "2026-11-04 10:02",
+ "last_collected": "2026-11-04 01:00"
 }
