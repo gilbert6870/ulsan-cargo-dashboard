@@ -8,18 +8,19 @@ $out  = Join-Path -Path $logD -ChildPath "task_status.txt"
 try {
   $ErrorActionPreference = "Stop"
   if (-not (Test-Path -LiteralPath $bat)) { throw "daily_update.bat not found: $bat" }
-  $action   = New-ScheduledTaskAction -Execute "cmd.exe" -Argument ("/c `"" + $bat + "`"") -WorkingDirectory $dir
+  $vbs      = Join-Path -Path $dir -ChildPath "run_hidden.vbs"   # hidden window: closing/clicking the console killed or paused runs
+  $action   = New-ScheduledTaskAction -Execute "wscript.exe" -Argument ("//B //Nologo `"" + $vbs + "`"") -WorkingDirectory $dir
   # 09:00 start, retry every hour until 18:00 (skips once today's update succeeded) + at logon
   $daily    = New-ScheduledTaskTrigger -Daily -At "09:00"
   $daily.Repetition = (New-ScheduledTaskTrigger -Once -At "09:00" -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 9)).Repetition
   $logon    = New-ScheduledTaskTrigger -AtLogOn -User ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
   $logon.Delay = "PT10M"
   $trigger  = @($daily, $logon)
-  $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+  $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun -ExecutionTimeLimit (New-TimeSpan -Hours 1) -MultipleInstances IgnoreNew
   $user     = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
   $principal= New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
   Register-ScheduledTask -TaskName "HeungalineDailyUpdate" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-  Write-Host "[OK] Task registered: HeungalineDailyUpdate (09:00, retry hourly until 18:00, and at logon)"
+  Write-Host "[OK] Task registered: HeungalineDailyUpdate (09:00, retry hourly until 18:00, and at logon, hidden window)"
   Write-Host "     $bat"
 } catch {
   Write-Host "[ERROR] $($_.Exception.Message)"

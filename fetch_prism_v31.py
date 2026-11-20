@@ -274,10 +274,12 @@ def incremental_update(new_rows, output_path):
         pass
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
+    tmp_path = str(output_path) + '.tmp'
+    with open(tmp_path, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=CSV_HEADERS, restval='', extrasaction='ignore')
         writer.writeheader()
         writer.writerows(all_rows)
+    os.replace(tmp_path, output_path)   # 다 쓴 뒤에 교체 → 중간에 끊겨도 원본이 반쪽 나지 않음
 
     return len(all_rows), added, updated, unchanged
 
@@ -285,11 +287,13 @@ def incremental_update(new_rows, output_path):
 def rows_to_csv(rows, output_path):
     """전체 교체 저장"""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
+    tmp_path = str(output_path) + '.tmp'
+    with open(tmp_path, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
         writer.writeheader()
         for r in rows:
             writer.writerow({h: r.get(ROW_KEY_MAP[h], '') for h in CSV_HEADERS})
+    os.replace(tmp_path, output_path)
     return len(rows)
 
 
@@ -521,13 +525,12 @@ def collect(date_from, date_to, full_replace=False):
     log(f"출력: {OUTPUT_PATH}")
 
     with sync_playwright() as p:
-        profile_path = Path(PROFILE_DIR) if Path(PROFILE_DIR).is_absolute() else PROJECT_DIR / PROFILE_DIR
-        browser = p.chromium.launch_persistent_context(
-            user_data_dir=str(profile_path),
+        _b = p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-dev-shm-usage',
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
                   '--disable-blink-features=AutomationControlled']
         )
+        browser = _b.new_context()   # 매번 새 세션 (기존 영구 프로필 손상/브라우저 충돌 방지)
         page = browser.new_page()
         log("PLISM 접속 중...")
         page.goto(
@@ -539,7 +542,7 @@ def collect(date_from, date_to, full_replace=False):
             log("로그인 페이지 감지 → 자동 로그인 시도")
             if not auto_login(page):
                 log("로그인 실패. .env 아이디/비밀번호 확인 후 재시도하세요.")
-                browser.close()
+                browser.close(); _b.close()
                 return None
             log("로그인 후 페이지 안정화 대기 (3초)...")
             page.wait_for_timeout(3000)
@@ -552,7 +555,7 @@ def collect(date_from, date_to, full_replace=False):
             'dateFrom': date_from,
             'dateTo': date_to
         })
-        browser.close()
+        browser.close(); _b.close()
 
     stats = result.get('stats', {})
     try:
@@ -599,7 +602,18 @@ def main():
             log(f"{INTERVAL_MIN}분 후 재실행...")
             time.sleep(INTERVAL_MIN * 60)
     else:
-        res = collect(date_from, date_to, full_replace=args.full_replace)
+        res = None
+        for attempt in (1, 2):
+            try:
+                res = collect(date_from, date_to, full_replace=args.full_replace)
+            except Exception as e:
+                log(f"[WARN] 수집 오류({attempt}/2): {str(e).splitlines()[0][:200]}")
+                res = None
+            if res:
+                break
+            if attempt == 1:
+                log("30초 후 다시 시도...")
+                time.sleep(30)
         if not res:
             log("[ERROR] 수집 실패 (로그인/접속 오류)")
             sys.exit(1)
